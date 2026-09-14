@@ -9,10 +9,11 @@ from src.agent.brain import market_context_score,validation_score,composite,expl
 from src.agent.portfolio import PaperPortfolio
 from src.agent.validator import SymbolValidator
 from src.agent.market_intelligence import MarketIntelligence
+from src.agent.autonomy import AutonomousPaperAgent
 
 class NexusAgent:
     def __init__(self):
-        self.s=load_settings();self.root=project_root();self.p=YFinanceProvider(self.s,self.root);self.port=PaperPortfolio(self.s);self.validator=SymbolValidator(self.s,self.p);self.intel=MarketIntelligence(self.s,self.p)
+        self.s=load_settings();self.root=project_root();self.p=YFinanceProvider(self.s,self.root);self.port=PaperPortfolio(self.s);self.validator=SymbolValidator(self.s,self.p);self.intel=MarketIntelligence(self.s,self.p);self.auto=AutonomousPaperAgent(self.s)
     def static_validated_match(self,symbol,direction,score,row):
         for st in self.s.get('validated_strategies',[]):
             if symbol==st['symbol'] and direction==st['direction'] and score>=int(st['min_score']) and float(row['rsi14'])>=float(st.get('rsi14_min',-999)) and float(row['distance_sma20_pct'])>=float(st.get('distance_sma20_pct_min',-999)):return st
@@ -91,10 +92,15 @@ class NexusAgent:
             else:
                 x['ai_action']='OBSERVAR'
             x['ai_strength_score']=round(0.34*x['composite_score']+0.24*x['validation_score']+0.18*(100-x['vulnerability_score'])+0.14*x.get('market_intelligence_score',50)+0.10*x['score'],1)
+            x=self.auto.enrich(x,fx,self.port.summary().get('cash_mxn',self.s['paper_portfolio']['starting_cash_mxn']))
             snap.append(x)
         snap.sort(key=lambda x:(0 if x['validated_match'] else 1,-x['composite_score'],x['vulnerability_score']))
-        for x in snap:self.port.maybe_open(x,fx)
+        transition_alerts=self.auto.process_transitions(snap)
+        for x in snap:
+            if x.get('autonomous_paper_allowed') and self.s.get('autonomous_agent',{}).get('auto_open',True):self.port.maybe_open(x,fx)
+            if x.get('autonomous_pause') and self.s.get('autonomous_agent',{}).get('auto_close_on_pause',True) and any(p.get('symbol')==x.get('symbol') for p in self.port.summary().get('positions',[])):
+                self.port.manual_close(x['symbol'],x['price'],fx,'AGENT_PAUSE')
         self.port.update_and_close(snap,fx)
-        state={'version':self.s['app']['version'],'mode':self.s['app']['mode'],'last_scan_utc':now,'assets_scanned':len(snap),'cheap_mexican_count':sum(1 for x in snap if x['cheap_mexican_under_50']),'validated_matches':sum(1 for x in snap if x['validated_match']),'validated_assets':sum(1 for x in snap if x['validation_score']>0),'usdmxn':round(fx,4) if fx else None,'errors':errors[-12:]}
+        state={'version':self.s['app']['version'],'mode':self.s['app']['mode'],'last_scan_utc':now,'assets_scanned':len(snap),'cheap_mexican_count':sum(1 for x in snap if x['cheap_mexican_under_50']),'validated_matches':sum(1 for x in snap if x['validated_match']),'validated_assets':sum(1 for x in snap if x['validation_score']>0),'usdmxn':round(fx,4) if fx else None,'errors':errors[-12:],'autonomous_agent':bool(self.s.get('autonomous_agent',{}).get('enabled',True)),'new_alerts':len(transition_alerts)}
         (self.root/self.s['storage']['state']).write_text(json.dumps(state,indent=2,ensure_ascii=False),encoding='utf-8');(self.root/self.s['storage']['snapshot']).write_text(json.dumps(snap,indent=2,ensure_ascii=False),encoding='utf-8');(self.root/self.s['storage']['benchmarks']).write_text(json.dumps(bench,indent=2,ensure_ascii=False),encoding='utf-8')
         return state,snap

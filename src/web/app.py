@@ -5,6 +5,7 @@ import json,atexit,math,threading,os,urllib.request,urllib.parse
 from src.config.loader import load_settings,project_root
 from src.agent.engine import NexusAgent
 from src.agent.portfolio import PaperPortfolio
+from src.agent.autonomy import AutonomousPaperAgent
 from src.agent.validator import SymbolValidator
 from src.data.yfinance_provider import YFinanceProvider
 
@@ -23,6 +24,7 @@ def create_app():
     provider=YFinanceProvider(s,root)
     validator=SymbolValidator(s,provider)
     portfolio=PaperPortfolio(s)
+    autonomy=AutonomousPaperAgent(s)
 
     def send_telegram(text):
         token=os.getenv('NEXUS_TELEGRAM_BOT_TOKEN','').strip()
@@ -46,8 +48,12 @@ def create_app():
         if not _job_lock.acquire(blocking=False):return
         try:
             write_runtime(scan_running=True,last_scan_started_utc=datetime.now(timezone.utc).isoformat())
+            before=len(autonomy.alerts(1000))
             st,_=agent.scan_once()
-            write_runtime(scan_running=False,last_scan_finished_utc=datetime.now(timezone.utc).isoformat(),last_scan_ok=True,last_scan_error=None)
+            fresh=autonomy.alerts(1000)[before:]
+            if s.get('alerts',{}).get('telegram_enabled',False):
+                for a in fresh[-10:]: send_telegram(f"NEXUS {a.get('title')} · {a.get('body')}")
+            write_runtime(scan_running=False,last_scan_finished_utc=datetime.now(timezone.utc).isoformat(),last_scan_ok=True,last_scan_error=None,last_alerts_generated=len(fresh))
             return st
         except Exception as e:
             print('AGENT ERROR',e,flush=True)
@@ -209,6 +215,21 @@ def create_app():
             send_telegram(f"NEXUS PAPER {side} {symbol} · Simulación confirmada")
         return jsonify(out),200 if out.get('ok') else 400
 
+    @app.get('/api/agent/decisions')
+    def agent_decisions():
+        limit=max(1,min(int(request.args.get('limit',100)),500))
+        return jsonify(list(reversed(autonomy.decisions(limit))))
+
+    @app.get('/api/alerts/feed')
+    def alerts_feed():
+        limit=max(1,min(int(request.args.get('limit',50)),200))
+        return jsonify(list(reversed(autonomy.alerts(limit))))
+
+    @app.get('/api/autonomy/status')
+    def autonomy_status():
+        c=s.get('autonomous_agent',{})
+        return jsonify({'enabled':bool(c.get('enabled',True)),'paper_only':True,'auto_open':bool(c.get('auto_open',True)),'auto_close_on_pause':bool(c.get('auto_close_on_pause',True)),'real_execution':False,'thresholds':{k:c.get(k) for k in ['min_validation_score','min_composite_score','min_ai_strength','max_vulnerability_for_entry','pause_vulnerability','pause_market_context']}})
+
     @app.get('/api/real-trading/status')
     def real_trading_status():
         cfg=s.get('real_trading',{})
@@ -231,6 +252,7 @@ def create_app():
     def alerts_status():
         return jsonify({
             'browser':True,
+            'feed_enabled':True,
             'telegram_configured':bool(os.getenv('NEXUS_TELEGRAM_BOT_TOKEN') and os.getenv('NEXUS_TELEGRAM_CHAT_ID')),
             'telegram_bot_token_env':'NEXUS_TELEGRAM_BOT_TOKEN',
             'telegram_chat_id_env':'NEXUS_TELEGRAM_CHAT_ID'
@@ -238,7 +260,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.14 · Alerta de prueba correcta.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.15 · Alerta de prueba correcta.'))
 
     @app.get('/api/platform')
     def platform():

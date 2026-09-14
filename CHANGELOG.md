@@ -1,3 +1,13 @@
+# V0.15.0
+
+- Agente autónomo PAPER.
+- Bitácora de decisiones y feed de alertas.
+- Plan de riesgo dinámico por activo.
+- Alertas por cambio de acción y aparición de setup validado.
+- Autoentrada PAPER conservadora y autocierre PAPER ante PAUSA.
+- Endpoints /api/autonomy/status, /api/agent/decisions y /api/alerts/feed.
+- Trading real sigue deshabilitado.
+
 # V0.13.1
 - Puerto local automático.
 - Busca puerto libre entre 5130 y 5199.

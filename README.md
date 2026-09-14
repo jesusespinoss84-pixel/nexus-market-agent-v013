@@ -1,4 +1,4 @@
-# NEXUS Market Agent V0.14.0 — ONLINE + LIVE PAPER
+# NEXUS Market Agent V0.15.0 — ONLINE + LIVE PAPER
 
 Corrección del conflicto de puerto local de V0.13.
 
@@ -31,3 +31,13 @@ Mantiene ONLINE READY + LIVE PAPER de V0.13.
 - Accesos directos a planes, facturación y servicio de Render.
 - Centro legal CNBV y estado de trading real.
 - Trading real deshabilitado por defecto y limitado a futura confirmación manual mediante broker compatible.
+
+
+## V0.15 — Agente autónomo PAPER
+- Motor autónomo PAPER con filtros conservadores.
+- Plan de riesgo por activo: entrada, stop, objetivo, tamaño sugerido y riesgo en MXN.
+- Bitácora persistente de cambios de decisión.
+- Feed de alertas para navegador y Telegram.
+- Apertura PAPER automática solo cuando el setup validado coincide con umbrales mínimos.
+- Cierre PAPER automático cuando el agente entra en condición PAUSAR.
+- La ejecución real sigue bloqueada; no envía órdenes reales.

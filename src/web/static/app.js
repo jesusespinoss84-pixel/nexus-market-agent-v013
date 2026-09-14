@@ -26,7 +26,7 @@ function renderAIDecision(x){
   if(!$('aiDecision'))return;
   const action=x.ai_action||'OBSERVAR';
   const tone=action==='PAPER BUY'?'positive':action==='PAUSAR'?'negative':'';
-  $('aiDecision').innerHTML=`<div class="aibanner ${tone}"><small>Acción sugerida para PAPER / soporte de decisión</small><b>${esc(action)}</b><span>Fuerza interna ${Number(x.ai_strength_score||0).toFixed(1)}/100</span></div><p>${esc(x.reason||'')}</p><dl><dt>Composite</dt><dd>${x.composite_score}/100</dd><dt>Validación</dt><dd>${x.validation_score}/100</dd><dt>Robustez</dt><dd>${x.validation_robustness==null?'—':Number(x.validation_robustness).toFixed(1)+'/100'}</dd><dt>Vulnerabilidad</dt><dd>${x.vulnerability_score}/100</dd><dt>Inteligencia</dt><dd>${Number(x.market_intelligence_score||0).toFixed(1)}/100</dd></dl><small>No es una probabilidad de ganancia ni una orden real.</small>`;
+  $('aiDecision').innerHTML=`<div class="aibanner ${tone}"><small>Acción sugerida para PAPER / soporte de decisión</small><b>${esc(action)}</b><span>Fuerza interna ${Number(x.ai_strength_score||0).toFixed(1)}/100</span></div><p>${esc(x.reason||'')}</p><dl><dt>Composite</dt><dd>${x.composite_score}/100</dd><dt>Validación</dt><dd>${x.validation_score}/100</dd><dt>Robustez</dt><dd>${x.validation_robustness==null?'—':Number(x.validation_robustness).toFixed(1)+'/100'}</dd><dt>Vulnerabilidad</dt><dd>${x.vulnerability_score}/100</dd><dt>Inteligencia</dt><dd>${Number(x.market_intelligence_score||0).toFixed(1)}/100</dd></dl>${x.risk_plan?`<div class="riskplan"><b>Plan PAPER sugerido</b><span>Entrada ${money(x.risk_plan.entry_mxn,'MXN')} · Stop ${money(x.risk_plan.stop_mxn,'MXN')} · Objetivo ${money(x.risk_plan.target_mxn,'MXN')} · ${x.risk_plan.suggested_shares||0} acciones</span></div>`:''}<small>No es una probabilidad de ganancia ni una orden real.</small>`;
   if($('orderSymbol'))$('orderSymbol').value=x.symbol;
 }
 
@@ -211,6 +211,29 @@ function renderPaperLive(pf,tr){
   $('tradeEvents').innerHTML=events.length?events.map(e=>`<div class="traderow"><span><b>${esc(e.type)}</b><small>${esc(e.symbol||'')}</small></span><span><b>${e.type==='BUY'?money(e.entry_price_mxn,'MXN'):money(e.exit_price_mxn,'MXN')}</b><small>${dt(e.t)}</small></span></div>`).join(''):'<div class="emptyline">Aún no hay eventos PAPER.</div>';
 }
 
+
+let LAST_ALERT_ID=sessionStorage.getItem('nexusLastAlertId')||'';
+async function refreshAgentOps(){
+  if(!$('autonomyStatus'))return;
+  try{
+    const [au,dec,feed]=await Promise.all([
+      fetch('/api/autonomy/status?_='+Date.now(),{cache:'no-store'}).then(r=>r.json()),
+      fetch('/api/agent/decisions?limit=12&_='+Date.now(),{cache:'no-store'}).then(r=>r.json()),
+      fetch('/api/alerts/feed?limit=10&_='+Date.now(),{cache:'no-store'}).then(r=>r.json())
+    ]);
+    $('autonomyStatus').innerHTML=`<b>Estado: ${au.enabled?'ACTIVO':'INACTIVO'}</b><span>Modo: PAPER únicamente</span><span>Auto entrada PAPER: ${au.auto_open?'SÍ':'NO'} · Auto salida por PAUSA: ${au.auto_close_on_pause?'SÍ':'NO'}</span><span>Trading real automático: NO</span>`;
+    $('decisionLog').innerHTML=dec.length?dec.map(d=>`<div class="traderow"><span><b>${esc(d.symbol)} · ${esc(d.action)}</b><small>${dt(d.t)} · ${esc(d.reason||'')}</small></span><span><b>${Number(d.ai_strength_score||0).toFixed(1)}/100</b><small>${d.setup_validated?'setup validado':'sin setup'}</small></span></div>`).join(''):'<div class="emptyline">Aún no hay cambios de decisión registrados.</div>';
+    if(feed.length){
+      const newest=feed[0];
+      if(newest.id!==LAST_ALERT_ID){
+        const unseen=[];for(const a of feed){if(a.id===LAST_ALERT_ID)break;unseen.push(a)}
+        unseen.reverse().forEach(a=>browserAlert(a.title,a.body));
+        LAST_ALERT_ID=newest.id;sessionStorage.setItem('nexusLastAlertId',LAST_ALERT_ID);
+      }
+    }
+  }catch(e){console.error('agent ops',e)}
+}
+
 async function refresh(opts={}){
   const keepSymbol=opts.forceSymbol || CURRENT?.symbol || $('symbol')?.value || null;
   const q=`?_=${Date.now()}`;
@@ -248,6 +271,7 @@ async function refresh(opts={}){
     $('symbol').value=target;
     await select(target,{initial:!CURRENT});
   }
+  await refreshAgentOps();
 }
 
 async function validate(mode){

@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.14.0
+  version: 0.15.0
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -339,6 +339,9 @@ storage:
   market_intelligence: storage/market_intelligence.json
   trade_events: storage/paper_trade_events.json
   runtime: storage/runtime.json
+  decision_log: storage/decision_log.json
+  alert_feed: storage/alert_feed.json
+  decision_state: storage/decision_state.json
 validation:
   enabled: true
   auto_validate: true
@@ -394,6 +397,22 @@ market_intelligence:
     mode: informational
     note: Contexto informativo; no sustituye validación histórica ni convierte el
       score en probabilidad.
+
+autonomous_agent:
+  enabled: true
+  paper_only: true
+  auto_open: true
+  auto_close_on_pause: true
+  min_validation_score: 60
+  min_composite_score: 65
+  min_ai_strength: 62
+  max_vulnerability_for_entry: 60
+  pause_vulnerability: 85
+  pause_market_context: 20
+  alert_on_action_change: true
+  alert_on_setup_detected: true
+  decision_log_max: 5000
+  alert_feed_max: 1000
 
 alerts:
   browser_enabled: true
