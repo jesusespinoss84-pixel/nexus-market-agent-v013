@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nexus-market-agent-v013
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 240
+    healthCheckPath: /healthz
+    autoDeploy: false
+    envVars:
+      - key: NEXUS_SCAN_MINUTES
+        value: "5"
+      - key: NEXUS_LIVE_MINUTES
+        value: "2"

@@ -1,0 +1,395 @@
+app:
+  name: NEXUS Market Agent
+  version: 0.13.1
+  mode: paper
+  port: 5130
+  online_ready: true
+  port_auto_fallback: true
+  port_search_end: 5199
+agent:
+  enabled: true
+  scan_minutes: 5
+  market_period: 5d
+  market_interval: 5m
+  history_period: 1y
+  history_interval: 1d
+  cache_minutes_intraday: 2
+  cache_minutes_history: 60
+  min_score_signal: 65
+  min_score_watch: 55
+  min_relative_volume: 1.5
+affordability:
+  cheap_mexican_max_mxn: 50
+  affordable_mxn: 500
+  affordable_usd: 100
+paper_portfolio:
+  enabled: true
+  starting_cash_mxn: 10000
+  max_position_pct: 30
+  risk_per_trade_pct: 1.0
+  only_validated_strategies: true
+  live_enabled: true
+  live_update_minutes: 2
+  slippage_pct: 0.05
+  commission_pct_round_trip: 0.02
+  max_open_positions: 4
+  cooldown_minutes_after_close: 60
+benchmarks:
+- symbol: ^MXX
+  name: IPC México
+  currency: MXN
+- symbol: ^GSPC
+  name: S&P 500
+  currency: USD
+assets:
+- symbol: AAPL
+  name: Apple
+  market: USA
+  currency: USD
+  sector: Tecnología
+  industry: Electrónica de consumo
+  comparison_benchmark: XLK
+- symbol: MSFT
+  name: Microsoft
+  market: USA
+  currency: USD
+  sector: Tecnología
+  industry: Software
+  comparison_benchmark: XLK
+- symbol: NVDA
+  name: NVIDIA
+  market: USA
+  currency: USD
+  sector: Tecnología
+  industry: Semiconductores
+  comparison_benchmark: XLK
+- symbol: AMD
+  name: AMD
+  market: USA
+  currency: USD
+  sector: Tecnología
+  industry: Semiconductores
+  comparison_benchmark: XLK
+- symbol: TSLA
+  name: Tesla
+  market: USA
+  currency: USD
+  sector: Consumo discrecional
+  industry: Automóviles
+  comparison_benchmark: XLY
+- symbol: META
+  name: Meta
+  market: USA
+  currency: USD
+  sector: Comunicación
+  industry: Internet / redes sociales
+  comparison_benchmark: XLC
+- symbol: AMZN
+  name: Amazon
+  market: USA
+  currency: USD
+  sector: Consumo discrecional
+  industry: Comercio electrónico
+  comparison_benchmark: XLY
+- symbol: GOOGL
+  name: Alphabet
+  market: USA
+  currency: USD
+  sector: Comunicación
+  industry: Internet / publicidad
+  comparison_benchmark: XLC
+- symbol: F
+  name: Ford
+  market: USA
+  currency: USD
+  sector: Consumo discrecional
+  industry: Automóviles
+  comparison_benchmark: XLY
+- symbol: PFE
+  name: Pfizer
+  market: USA
+  currency: USD
+  sector: Salud
+  industry: Farmacéutica
+  comparison_benchmark: XLV
+- symbol: SOFI
+  name: SoFi Technologies
+  market: USA
+  currency: USD
+  sector: Financiero
+  industry: Fintech
+  comparison_benchmark: XLF
+- symbol: AMXB.MX
+  name: América Móvil
+  aliases: Telcel · Radiomóvil Dipsa
+  fallback_symbols:
+  - AMX
+  market: MEX
+  currency: MXN
+  sector: Comunicación
+  industry: Telecomunicaciones
+  comparison_benchmark: ^MXX
+- symbol: WALMEX.MX
+  name: Walmart de México
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Retail
+  comparison_benchmark: ^MXX
+- symbol: CEMEXCPO.MX
+  name: CEMEX
+  market: MEX
+  currency: MXN
+  sector: Materiales
+  industry: Cemento
+  comparison_benchmark: ^MXX
+- symbol: FEMSAUBD.MX
+  name: FEMSA
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Bebidas / retail
+  comparison_benchmark: ^MXX
+- symbol: GFNORTEO.MX
+  name: Grupo Financiero Banorte
+  market: MEX
+  currency: MXN
+  sector: Financiero
+  industry: Banca
+  comparison_benchmark: ^MXX
+- symbol: BIMBOA.MX
+  name: Grupo Bimbo
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Alimentos
+  comparison_benchmark: ^MXX
+- symbol: GAPB.MX
+  name: Grupo Aeroportuario del Pacífico
+  market: MEX
+  currency: MXN
+  sector: Industrial
+  industry: Aeropuertos
+  comparison_benchmark: ^MXX
+- symbol: KIMBERA.MX
+  name: Kimberly-Clark de México
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Productos personales
+  comparison_benchmark: ^MXX
+- symbol: TLEVISACPO.MX
+  name: Grupo Televisa
+  market: MEX
+  currency: MXN
+  sector: Comunicación
+  industry: Medios
+  comparison_benchmark: ^MXX
+- symbol: GMEXICOB.MX
+  name: Grupo México
+  market: MEX
+  currency: MXN
+  sector: Materiales
+  industry: Minería
+  comparison_benchmark: ^MXX
+- symbol: GCARSOA1.MX
+  name: Grupo Carso
+  market: MEX
+  currency: MXN
+  sector: Industrial
+  industry: Conglomerado
+  comparison_benchmark: ^MXX
+- symbol: ORBIA.MX
+  name: Orbia
+  market: MEX
+  currency: MXN
+  sector: Materiales
+  industry: Químicos
+  comparison_benchmark: ^MXX
+- symbol: CUERVO.MX
+  name: Becle / José Cuervo
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Bebidas
+  comparison_benchmark: ^MXX
+- symbol: SORIANAB.MX
+  name: Organización Soriana
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Retail
+  comparison_benchmark: ^MXX
+- symbol: MEGACPO.MX
+  name: Megacable
+  market: MEX
+  currency: MXN
+  sector: Comunicación
+  industry: Telecomunicaciones
+  comparison_benchmark: ^MXX
+- symbol: AC.MX
+  name: Arca Continental
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Bebidas
+  comparison_benchmark: ^MXX
+- symbol: GRUMAB.MX
+  name: GRUMA
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Alimentos
+  comparison_benchmark: ^MXX
+- symbol: ASURB.MX
+  name: ASUR
+  market: MEX
+  currency: MXN
+  sector: Industrial
+  industry: Aeropuertos
+  comparison_benchmark: ^MXX
+- symbol: OMAB.MX
+  name: OMA
+  market: MEX
+  currency: MXN
+  sector: Industrial
+  industry: Aeropuertos
+  comparison_benchmark: ^MXX
+- symbol: CHDRAUIB.MX
+  name: Chedraui
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Retail
+  comparison_benchmark: ^MXX
+- symbol: LABB.MX
+  name: Genomma Lab
+  market: MEX
+  currency: MXN
+  sector: Salud
+  industry: Productos farmacéuticos
+  comparison_benchmark: ^MXX
+- symbol: VITROA.MX
+  name: Vitro
+  market: MEX
+  currency: MXN
+  sector: Materiales
+  industry: Vidrio
+  comparison_benchmark: ^MXX
+validated_strategies:
+- id: NVDA_RSI75_SMA20_2
+  symbol: NVDA
+  direction: BUY
+  min_score: 65
+  rsi14_min: 75
+  distance_sma20_pct_min: 2.0
+  robustness_score: 69.3
+  profit_factor: 1.748
+  expectancy_r: 0.326
+  walk_forward: 4/5
+risk:
+  stop_loss_pct: 2.0
+  take_profit_pct: 4.0
+sensitivity:
+  symbol: NVDA
+  period: 2y
+  interval: 1h
+  rsi_values:
+  - 70
+  - 72.5
+  - 75
+  - 77.5
+  - 80
+  sma20_distance_values:
+  - 1.0
+  - 1.5
+  - 2.0
+  - 2.5
+  - 3.0
+  score_values:
+  - 60
+  - 65
+  - 70
+  - 75
+  stop_values:
+  - 1.5
+  - 2.0
+  - 2.5
+  target_values:
+  - 3.0
+  - 4.0
+  - 5.0
+  slippage_values:
+  - 0.05
+  - 0.1
+  commission_pct_round_trip: 0.02
+  max_bars_in_trade: 20
+  min_trades_for_stability: 20
+storage:
+  state: storage/agent_state.json
+  snapshot: storage/watchlist_snapshot.json
+  benchmarks: storage/benchmarks.json
+  sensitivity: storage/sensitivity_results.csv
+  sensitivity_summary: storage/sensitivity_summary.json
+  portfolio: storage/paper_portfolio.json
+  equity_curve: storage/equity_curve.json
+  cache_dir: storage/cache
+  validations_dir: storage/validations
+  market_intelligence: storage/market_intelligence.json
+  trade_events: storage/paper_trade_events.json
+  runtime: storage/runtime.json
+validation:
+  enabled: true
+  auto_validate: true
+  cache_hours: 24
+  period: 2y
+  interval: 1h
+  min_trades: 20
+  walk_forward_folds: 5
+  max_auto_per_scan: 2
+  prefilter:
+    min_technical: 65
+    min_viability: 45
+    max_vulnerability: 85
+  validated_thresholds:
+    min_trades: 20
+    min_pf: 1.25
+    min_exp_r: 0.1
+    min_robustness: 60
+    min_positive_folds: 3
+  quick_grid:
+    rsi_values:
+    - 70
+    - 75
+    - 80
+    sma20_distance_values:
+    - 1.0
+    - 2.0
+    - 3.0
+    score_values:
+    - 65
+    - 70
+    - 75
+    stop_values:
+    - 1.5
+    - 2.0
+    target_values:
+    - 3.0
+    - 4.0
+    - 5.0
+    slippage_values:
+    - 0.05
+market_intelligence:
+  enabled: true
+  relative_strength_period_days: 63
+  abnormal_volume_days: 20
+  sector_weight: 0.3
+  relative_strength_weight: 0.3
+  volume_weight: 0.15
+  volatility_weight: 0.15
+  earnings_weight: 0.1
+  news_sentiment:
+    enabled: true
+    mode: informational
+    note: Contexto informativo; no sustituye validación histórica ni convierte el
+      score en probabilidad.
