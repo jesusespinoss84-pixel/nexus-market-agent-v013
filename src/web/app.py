@@ -1,7 +1,7 @@
 from flask import Flask,jsonify,render_template,request
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timezone, timedelta
-import json,atexit,math,threading,os
+import json,atexit,math,threading,os,urllib.request,urllib.parse
 from src.config.loader import load_settings,project_root
 from src.agent.engine import NexusAgent
 from src.agent.portfolio import PaperPortfolio
@@ -23,6 +23,17 @@ def create_app():
     provider=YFinanceProvider(s,root)
     validator=SymbolValidator(s,provider)
     portfolio=PaperPortfolio(s)
+
+    def send_telegram(text):
+        token=os.getenv('NEXUS_TELEGRAM_BOT_TOKEN','').strip()
+        chat=os.getenv('NEXUS_TELEGRAM_CHAT_ID','').strip()
+        if not token or not chat:return {'ok':False,'configured':False,'error':'TELEGRAM_NOT_CONFIGURED'}
+        try:
+            data=urllib.parse.urlencode({'chat_id':chat,'text':text}).encode()
+            req=urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',data=data,method='POST')
+            with urllib.request.urlopen(req,timeout=12) as r:
+                return {'ok':200<=r.status<300,'configured':True,'status':r.status}
+        except Exception as e:return {'ok':False,'configured':True,'error':str(e)}
 
     def write_runtime(**kw):
         p=root/s['storage'].get('runtime','storage/runtime.json')
@@ -175,5 +186,74 @@ def create_app():
     def run_now():
         st=scan_job()
         return jsonify({'ok':True,'state':st or readj(root/s['storage']['state'],{})})
+
+    @app.post('/api/paper/order')
+    def paper_order():
+        body=request.get_json(silent=True) or {}
+        symbol=str(body.get('symbol') or '').strip()
+        side=str(body.get('side') or '').upper().strip()
+        asset=next((x for x in s['assets'] if x['symbol']==symbol),None)
+        if not asset:return jsonify({'ok':False,'error':'UNKNOWN_SYMBOL'}),404
+        q=provider.get_live_price(symbol,asset.get('fallback_symbols',[]))
+        if not q:return jsonify({'ok':False,'error':'NO_LIVE_QUOTE'}),503
+        fx=provider.get_usdmxn()
+        rows=readj(root/s['storage']['snapshot'],[])
+        row=next((x for x in rows if x.get('symbol')==symbol),None) or {**asset,'price':q['price'],'validation_score':0,'composite_score':0}
+        row['price']=q['price']
+        if side=='BUY':
+            out=portfolio.manual_open(row,fx,body.get('budget_mxn'),body.get('stop_pct'),body.get('target_pct'))
+        elif side=='SELL':
+            out=portfolio.manual_close(symbol,q['price'],fx,'MANUAL')
+        else:return jsonify({'ok':False,'error':'SIDE_MUST_BE_BUY_OR_SELL'}),400
+        if out.get('ok'):
+            send_telegram(f"NEXUS PAPER {side} {symbol} · Simulación confirmada")
+        return jsonify(out),200 if out.get('ok') else 400
+
+    @app.get('/api/real-trading/status')
+    def real_trading_status():
+        cfg=s.get('real_trading',{})
+        return jsonify({
+            'enabled':bool(cfg.get('enabled',False)),
+            'execution_mode':cfg.get('execution_mode','manual_confirmation_only'),
+            'broker':cfg.get('broker'),
+            'autonomous_execution':False,
+            'note':cfg.get('note'),
+            'requirements':[
+                'Cuenta propia con intermediario autorizado y contrato vigente',
+                'API oficial del intermediario y credenciales protegidas',
+                'Confirmación manual de cada orden real',
+                'Bitácora auditable de señales, confirmaciones y ejecuciones',
+                'Revisión fiscal y regulatoria aplicable antes de operar'
+            ]
+        })
+
+    @app.get('/api/alerts/status')
+    def alerts_status():
+        return jsonify({
+            'browser':True,
+            'telegram_configured':bool(os.getenv('NEXUS_TELEGRAM_BOT_TOKEN') and os.getenv('NEXUS_TELEGRAM_CHAT_ID')),
+            'telegram_bot_token_env':'NEXUS_TELEGRAM_BOT_TOKEN',
+            'telegram_chat_id_env':'NEXUS_TELEGRAM_CHAT_ID'
+        })
+
+    @app.post('/api/alerts/test')
+    def alerts_test():
+        return jsonify(send_telegram('NEXUS Market Agent V0.14 · Alerta de prueba correcta.'))
+
+    @app.get('/api/platform')
+    def platform():
+        return jsonify({
+            'render':{
+                'current_plan':'free',
+                'pricing_url':'https://render.com/pricing',
+                'billing_url':'https://dashboard.render.com/billing',
+                'service_url':'https://dashboard.render.com/web/srv-dak1sdmk1f9s73amjk9g'
+            },
+            'legal':{
+                'cnbv_brokers':'https://www.cnbv.gob.mx/SECTORES-SUPERVISADOS/BURS%C3%81TIL/Descripci%C3%B3n/Paginas/Casas-de-Bolsa.aspx',
+                'cnbv_advisers':'https://www.gob.mx/cnbv/acciones-y-programas/asesores-en-inversiones',
+                'cnbv_rules':'https://www.gob.mx/cnbv/acciones-y-programas/disposiciones-legales-casas-de-bolsa'
+            }
+        })
 
     return app

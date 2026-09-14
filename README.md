@@ -1,4 +1,4 @@
-# NEXUS Market Agent V0.13.1 — ONLINE + LIVE PAPER
+# NEXUS Market Agent V0.14.0 — ONLINE + LIVE PAPER
 
 Corrección del conflicto de puerto local de V0.13.
 
@@ -22,3 +22,12 @@ En Internet, si el hosting define la variable `PORT`, NEXUS respeta exactamente 
 3. El navegador se abrirá automáticamente.
 
 Mantiene ONLINE READY + LIVE PAPER de V0.13.
+
+
+## V0.14
+- Centro de operación PAPER manual con monto, stop y objetivo.
+- Panel de NEXUS AI con acción asistida (PAPER BUY / ESPERAR / ESTUDIAR / PAUSAR).
+- Centro de alertas del navegador y soporte opcional de Telegram mediante variables de entorno.
+- Accesos directos a planes, facturación y servicio de Render.
+- Centro legal CNBV y estado de trading real.
+- Trading real deshabilitado por defecto y limitado a futura confirmación manual mediante broker compatible.

@@ -1,7 +1,8 @@
 app:
   name: NEXUS Market Agent
-  version: 0.13.1
+  version: 0.14.0
   mode: paper
+  live_trading_enabled: false
   port: 5130
   online_ready: true
   port_auto_fallback: true
@@ -393,3 +394,18 @@ market_intelligence:
     mode: informational
     note: Contexto informativo; no sustituye validación histórica ni convierte el
       score en probabilidad.
+
+alerts:
+  browser_enabled: true
+  telegram_enabled: false
+  telegram_bot_token_env: NEXUS_TELEGRAM_BOT_TOKEN
+  telegram_chat_id_env: NEXUS_TELEGRAM_CHAT_ID
+  alert_on_paper_candidate: true
+  alert_on_pause: true
+  alert_on_trade_event: true
+
+real_trading:
+  enabled: false
+  execution_mode: manual_confirmation_only
+  broker: null
+  note: "La ejecución real permanece deshabilitada hasta configurar un intermediario compatible y autorizado. NEXUS no ejecuta órdenes reales de forma autónoma."

@@ -5,3 +5,12 @@
 - No es necesario cerrar procesos que ya usan 5130.
 - En hosting sigue respetando exactamente PORT.
 - Mantiene ONLINE READY + LIVE PAPER.
+
+
+## 0.14.0
+- Nuevo centro de operación PAPER manual.
+- Nueva capa NEXUS AI Decision Support.
+- Alertas navegador + preparación Telegram.
+- Planes/Facturación Render.
+- Centro legal y broker readiness.
+- Real trading permanece bloqueado hasta integrar un broker oficial con confirmación manual.

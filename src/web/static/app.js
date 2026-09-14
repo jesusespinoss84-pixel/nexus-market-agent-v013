@@ -17,9 +17,43 @@ const $=id=>document.getElementById(id);let DATA=[],FILTER='ALL',CURRENT=null,RA
 const pct=v=>v==null?'—':`${v>=0?'+':''}${Number(v).toFixed(2)}%`;const cls=v=>v>0?'positive':v<0?'negative':'';const money=(v,c)=>v==null?'—':new Intl.NumberFormat('es-MX',{style:'currency',currency:c,maximumFractionDigits:2}).format(v);const dt=v=>v?new Date(v).toLocaleString('es-MX'):'—';
 function pill(d){if(d==='PAPER CANDIDATE')return'pill paper';if(d==='VALIDADA · ESPERAR SETUP'||d==='INVESTIGAR'||d==='VIABLE A ESTUDIAR')return'pill investigate';if(d==='VULNERABLE')return'pill risk';if(d==='OBSERVAR'||d==='OPORTUNIDAD TÉCNICA')return'pill watch';return'pill none'}
 function rows(){let a=DATA;if(FILTER==='MEX')a=a.filter(x=>x.market==='MEX');if(FILTER==='CHEAP')a=a.filter(x=>x.cheap_mexican_under_50);if(FILTER==='VIABLE')a=[...a].sort((x,y)=>y.composite_score-x.composite_score).slice(0,15);if(FILTER==='VULNERABLE')a=[...a].sort((x,y)=>y.vulnerability_score-x.vulnerability_score).slice(0,15);$('body').innerHTML=a.map(x=>`<tr data-s="${x.symbol}"><td><span class="name">${x.name}</span><span class="ticker">${x.symbol}${x.aliases?' · '+x.aliases:''}</span></td><td>${money(x.price,x.currency)}</td><td class="${cls(x.ret_1d)}">${pct(x.ret_1d)}</td><td class="${cls(x.ret_1w)}">${pct(x.ret_1w)}</td><td class="${cls(x.ret_1m)}">${pct(x.ret_1m)}</td><td class="${cls(x.ret_3m)}">${pct(x.ret_3m)}</td><td class="${cls(x.ret_ytd)}">${pct(x.ret_ytd)}</td><td class="${cls(x.ret_1y)}">${pct(x.ret_1y)}</td><td>${pct(x.volatility_30d)}</td><td class="negative">${pct(x.max_drawdown_1y)}</td><td>${x.viability_score}</td><td>${x.vulnerability_score}</td><td>${x.score}</td><td>${x.market_context_score}</td><td>${x.validation_score}</td><td class="comp">${x.composite_score}</td><td><span class="${pill(x.decision)}">${x.decision}</span></td></tr>`).join('');document.querySelectorAll('#body tr').forEach(tr=>tr.onclick=()=>select(tr.dataset.s))}
-function brain(x){CURRENT=x;$('brain').innerHTML=`<h4>${x.name}<span class="ticker">${x.symbol}${x.aliases?' · '+x.aliases:''}</span></h4><p><b>${x.decision}</b></p><p>${x.reason}</p><dl><dt>Composite</dt><dd>${x.composite_score}/100</dd><dt>Técnico</dt><dd>${x.score}/100</dd><dt>Viability</dt><dd>${x.viability_score}/100</dd><dt>Vulnerability</dt><dd>${x.vulnerability_score}/100</dd><dt>Contexto</dt><dd>${x.market_context_score}/100</dd><dt>Validación propia</dt><dd>${x.validation_score}/100</dd><dt>Walk-forward</dt><dd>${x.validation_walk_forward||'—'}</dd><dt>Setup validado ahora</dt><dd>${x.validated_match?'SÍ':'NO'}</dd></dl>`}
+function brain(x){CURRENT=x;renderAIDecision(x);$('brain').innerHTML=`<h4>${x.name}<span class="ticker">${x.symbol}${x.aliases?' · '+x.aliases:''}</span></h4><p><b>${x.decision}</b></p><p>${x.reason}</p><dl><dt>Composite</dt><dd>${x.composite_score}/100</dd><dt>Técnico</dt><dd>${x.score}/100</dd><dt>Viability</dt><dd>${x.viability_score}/100</dd><dt>Vulnerability</dt><dd>${x.vulnerability_score}/100</dd><dt>Contexto</dt><dd>${x.market_context_score}/100</dd><dt>Validación propia</dt><dd>${x.validation_score}/100</dd><dt>Walk-forward</dt><dd>${x.validation_walk_forward||'—'}</dd><dt>Setup validado ahora</dt><dd>${x.validated_match?'SÍ':'NO'}</dd></dl>`}
 async function loadLab(s){$('labSub').textContent=`${s} · validación histórica propia`;$('sens').innerHTML='<p>Consultando laboratorio…</p>';try{const d=await fetch(`/api/validation/${encodeURIComponent(s)}?_=${Date.now()}`,{cache:'no-store'}).then(r=>r.json());renderLab(d)}catch(e){$('sens').innerHTML='<p>Error al cargar la validación.</p>'}}
 function renderLab(d){const top=d.top10||[];if(d.status==='NOT_RUN'){$('sens').innerHTML=`<p>Este activo todavía no tiene validación propia. Usa <b>Validar rápido</b> o <b>Validación completa</b>.</p>`;return}if(d.status==='NO_DATA'){$('sens').innerHTML='<p>No hubo datos históricos suficientes para validar este activo.</p>';return}if(d.status==='ERROR'){$('sens').innerHTML=`<p>Error: ${d.error||'desconocido'}</p>`;return}const wf=d.walk_forward||{};$('sens').innerHTML=`<p><b>${d.symbol}</b> · Score validación <b>${Number(d.validation_score||0).toFixed(1)}/100</b> · Robustez <b>${Number(d.robustness_score||0).toFixed(1)}/100</b><br><b>${d.tested_combinations||0}</b> combinaciones · <b>${d.stable_combinations||0}</b> con muestra suficiente · Walk-forward <b>${wf.label||'—'}</b> · Estado ${d.validated?'<b>VALIDADA</b>':'NO VALIDADA'}</p>`+top.slice(0,8).map((z,i)=>`<div class="labrow"><b>#${i+1} RSI ${z.rsi_min} · SMA ${z.sma20_distance_min}% · Score ≥${z.score_min}</b><span>PF ${Number(z.pf).toFixed(3)} · Exp ${Number(z.exp_r).toFixed(3)}R · ${z.trades} trades · Win ${Number(z.win_pct).toFixed(1)}%</span></div>`).join('')}
+
+
+function renderAIDecision(x){
+  if(!$('aiDecision'))return;
+  const action=x.ai_action||'OBSERVAR';
+  const tone=action==='PAPER BUY'?'positive':action==='PAUSAR'?'negative':'';
+  $('aiDecision').innerHTML=`<div class="aibanner ${tone}"><small>Acción sugerida para PAPER / soporte de decisión</small><b>${esc(action)}</b><span>Fuerza interna ${Number(x.ai_strength_score||0).toFixed(1)}/100</span></div><p>${esc(x.reason||'')}</p><dl><dt>Composite</dt><dd>${x.composite_score}/100</dd><dt>Validación</dt><dd>${x.validation_score}/100</dd><dt>Robustez</dt><dd>${x.validation_robustness==null?'—':Number(x.validation_robustness).toFixed(1)+'/100'}</dd><dt>Vulnerabilidad</dt><dd>${x.vulnerability_score}/100</dd><dt>Inteligencia</dt><dd>${Number(x.market_intelligence_score||0).toFixed(1)}/100</dd></dl><small>No es una probabilidad de ganancia ni una orden real.</small>`;
+  if($('orderSymbol'))$('orderSymbol').value=x.symbol;
+}
+
+async function paperOrder(side){
+  const symbol=$('orderSymbol').value;
+  const body={symbol,side,budget_mxn:Number($('orderBudget').value||0),stop_pct:Number($('orderStop').value||2),target_pct:Number($('orderTarget').value||4)};
+  $('orderResult').textContent='Procesando simulación…';
+  try{
+    const r=await fetch('/api/paper/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
+    const d=await r.json();
+    $('orderResult').textContent=d.ok?`${side} PAPER ejecutada para ${symbol}.`: `No se pudo: ${d.error||'error'}`;
+    if(d.ok){browserAlert(`NEXUS PAPER ${side}`,`${symbol} · operación simulada`);await refresh({forceSymbol:symbol});}
+  }catch(e){$('orderResult').textContent='Error al ejecutar la simulación.'}
+}
+
+function browserAlert(title,body){
+  if('Notification' in window && Notification.permission==='granted')new Notification(title,{body});
+}
+
+async function initControlCenter(){
+  if(!$('orderSymbol'))return;
+  try{
+    const [rt,al]=await Promise.all([fetch('/api/real-trading/status').then(r=>r.json()),fetch('/api/alerts/status').then(r=>r.json())]);
+    $('realTradingBox').innerHTML=`<b>Trading real: ${rt.enabled?'HABILITADO':'DESHABILITADO'}</b><span>Modo: ${esc(rt.execution_mode)}</span><span>Broker: ${esc(rt.broker||'sin configurar')}</span><span>${esc(rt.note||'')}</span><ul>${(rt.requirements||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+    $('alertStatus').textContent=`Navegador: disponible · Telegram: ${al.telegram_configured?'configurado':'pendiente de configurar'}`;
+  }catch(e){}
+}
 
 let SELECT_SEQ=0;
 
@@ -207,6 +241,7 @@ async function refresh(opts={}){
   renderPaperLive(pf,tr);
 
   $('symbol').innerHTML=DATA.map(x=>`<option value="${x.symbol}">${x.symbol} · ${x.name}</option>`).join('');
+  if($('orderSymbol'))$('orderSymbol').innerHTML=DATA.map(x=>`<option value="${x.symbol}">${x.symbol} · ${x.name}</option>`).join('');
   rows();decisions();
   const target=(keepSymbol && DATA.some(x=>x.symbol===keepSymbol))?keepSymbol:(DATA[0]?.symbol||null);
   if(target){
@@ -258,6 +293,19 @@ $('liveNow').onclick=async()=>{
     await refresh({forceSymbol:CURRENT?.symbol});
   }finally{b.disabled=false;b.textContent=old}
 };
+
+
+if($('paperBuy'))$('paperBuy').onclick=()=>paperOrder('BUY');
+if($('paperSell'))$('paperSell').onclick=()=>paperOrder('SELL');
+if($('enableBrowserAlerts'))$('enableBrowserAlerts').onclick=async()=>{
+  if(!('Notification' in window)){$('alertStatus').textContent='Este navegador no soporta notificaciones.';return}
+  const p=await Notification.requestPermission();$('alertStatus').textContent=p==='granted'?'Alertas del navegador activadas.':'Permiso de alertas no concedido.';
+};
+if($('testTelegram'))$('testTelegram').onclick=async()=>{
+  $('alertStatus').textContent='Probando Telegram…';
+  try{const d=await fetch('/api/alerts/test',{method:'POST'}).then(r=>r.json());$('alertStatus').textContent=d.ok?'Telegram respondió correctamente.':`Telegram pendiente: ${d.error||'sin configurar'}`;}catch(e){$('alertStatus').textContent='No se pudo probar Telegram.'}
+};
+initControlCenter();
 
 // La gráfica aparece desde el primer arranque.
 refresh().catch(e=>{

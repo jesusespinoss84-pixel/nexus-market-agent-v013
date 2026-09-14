@@ -78,7 +78,20 @@ class NexusAgent:
             context12=round(mc*0.55+float(intel.get('market_intelligence_score',50))*0.45,1)
             comp=composite(sig['score'],via,vul,context12,vs)
             x={'timestamp':now,'symbol':a['symbol'],'resolved_symbol':resi,'name':a['name'],'aliases':a.get('aliases',''),'sector':a.get('sector',''),'industry':a.get('industry',''),'market':a['market'],'currency':a['currency'],'price':round(price,4),'mxn_equivalent':round(mxn,2),'cheap_mexican_under_50':a['market']=='MEX' and price<float(self.s['affordability']['cheap_mexican_max_mxn']),'direction':sig['direction'],'score':int(sig['score']),'rsi14':round(float(row['rsi14']),2),'rel_volume':round(float(row['rel_volume']),2),'distance_sma20_pct':round(float(row['distance_sma20_pct']),2),'viability_score':via,'vulnerability_score':vul,'market_context_score':context12,'validation_score':vs,'composite_score':comp,'validated_match':match,'validation_available':bool(dyn),'validation_mode':dyn.get('mode') if dyn else None,'validation_robustness':dyn.get('robustness_score') if dyn else None,'validation_walk_forward':(dyn.get('walk_forward') or {}).get('label') if dyn else None,'validated_strategy_id':(f"DYNAMIC_{a['symbol']}" if dyn_match else static['id'] if static else None),**intel,**{k:(round(v,2) if isinstance(v,(int,float)) and v is not None else v) for k,v in hm.items()}}
-            x['decision']=self.decision(x);x['reason']=explanation(x);snap.append(x)
+            x['decision']=self.decision(x);x['reason']=explanation(x)
+            # V0.14: acción del agente para soporte de decisión / PAPER. No es probabilidad de ganancia.
+            if x['vulnerability_score']>=80 or x['market_context_score']<=25:
+                x['ai_action']='PAUSAR'
+            elif x['validated_match'] and x['validation_score']>=60 and x['composite_score']>=65:
+                x['ai_action']='PAPER BUY'
+            elif x['validation_score']>=60 and x['composite_score']>=60:
+                x['ai_action']='ESPERAR SETUP'
+            elif x['composite_score']>=68 and x['vulnerability_score']<=60:
+                x['ai_action']='ESTUDIAR'
+            else:
+                x['ai_action']='OBSERVAR'
+            x['ai_strength_score']=round(0.34*x['composite_score']+0.24*x['validation_score']+0.18*(100-x['vulnerability_score'])+0.14*x.get('market_intelligence_score',50)+0.10*x['score'],1)
+            snap.append(x)
         snap.sort(key=lambda x:(0 if x['validated_match'] else 1,-x['composite_score'],x['vulnerability_score']))
         for x in snap:self.port.maybe_open(x,fx)
         self.port.update_and_close(snap,fx)

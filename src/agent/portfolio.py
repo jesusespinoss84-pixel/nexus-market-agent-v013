@@ -164,6 +164,62 @@ class PaperPortfolio:
         with self._lock:self._mark_positions(pm,fx)
         return self.summary()
 
+
+    def manual_open(self,row,fx,budget_mxn=None,stop_pct=None,target_pct=None):
+        """Open a PAPER position manually. Never sends a real broker order."""
+        cfg=self.s['paper_portfolio']
+        if not cfg.get('enabled'):return {'ok':False,'error':'PAPER_DISABLED'}
+        with self._lock:
+            if any(p['symbol']==row['symbol'] for p in self.data['positions']):return {'ok':False,'error':'POSITION_ALREADY_OPEN'}
+            if len(self.data['positions'])>=int(cfg.get('max_open_positions',4)):return {'ok':False,'error':'MAX_OPEN_POSITIONS'}
+            px_native=float(row['price'])
+            px_mxn=px_native if row['currency']=='MXN' else px_native*(fx or 1)
+            if px_mxn<=0:return {'ok':False,'error':'INVALID_PRICE'}
+            default_budget=self.data['starting_cash_mxn']*float(cfg.get('max_position_pct',30))/100
+            budget=max(0,min(float(budget_mxn or default_budget),self.data['cash_mxn']))
+            sh=int(budget/px_mxn)
+            if sh<1:return {'ok':False,'error':'INSUFFICIENT_CASH'}
+            slip=float(cfg.get('slippage_pct',0.05))/100
+            entry=px_mxn*(1+slip)
+            cost=entry*sh
+            if cost>self.data['cash_mxn']:
+                sh=int(self.data['cash_mxn']/entry)
+                cost=entry*sh
+            if sh<1:return {'ok':False,'error':'INSUFFICIENT_CASH'}
+            sp=float(stop_pct if stop_pct is not None else self.s['risk']['stop_loss_pct'])/100
+            tp=float(target_pct if target_pct is not None else self.s['risk']['take_profit_pct'])/100
+            p={
+                'symbol':row['symbol'],'name':row['name'],'currency':row['currency'],'shares':sh,
+                'entry_native':round(px_native,6),'entry_price_mxn':round(entry,2),'last_price_mxn':round(px_mxn,2),
+                'stop_mxn':round(entry*(1-sp),2),'target_mxn':round(entry*(1+tp),2),
+                'market_value_mxn':round(px_mxn*sh,2),'unrealized_mxn':round((px_mxn-entry)*sh,2),
+                'opened_utc':datetime.now(timezone.utc).isoformat(),'strategy_id':'MANUAL_PAPER',
+                'validation_score':row.get('validation_score'),'composite_score':row.get('composite_score'),
+                'source':'MANUAL_PAPER'
+            }
+            self.data['cash_mxn']-=cost
+            self.data['positions'].append(p)
+            self.data['last_update_utc']=datetime.now(timezone.utc).isoformat()
+            self.save();self._event('BUY_MANUAL',p);self.snapshot_curve()
+            return {'ok':True,'position':p}
+
+    def manual_close(self,symbol,price_native,fx,reason='MANUAL'):
+        """Close one PAPER position manually. Never sends a real broker order."""
+        with self._lock:
+            pos=next((p for p in self.data['positions'] if p.get('symbol')==symbol),None)
+            if not pos:return {'ok':False,'error':'POSITION_NOT_FOUND'}
+            px=float(price_native) if pos.get('currency')=='MXN' else float(price_native)*(fx or 1)
+            cfg=self.s['paper_portfolio'];half_comm=float(cfg.get('commission_pct_round_trip',0.02))/200
+            exit_px=px*(1-half_comm);proceeds=exit_px*pos['shares'];pnl=(exit_px-pos['entry_price_mxn'])*pos['shares']
+            risk=pos['entry_price_mxn']-pos['stop_mxn'];rm=(exit_px-pos['entry_price_mxn'])/risk if risk>0 else 0
+            now=datetime.now(timezone.utc).isoformat()
+            closed={**pos,'closed_utc':now,'exit_price_mxn':round(exit_px,2),'exit_reason':reason,
+                    'pnl_mxn':round(pnl,2),'r_multiple':round(rm,3)}
+            self.data['positions']=[p for p in self.data['positions'] if p.get('symbol')!=symbol]
+            self.data['cash_mxn']+=proceeds;self.data['closed'].append(closed);self.data['last_update_utc']=now
+            self.save();self._event('SELL_MANUAL',closed);self.snapshot_curve()
+            return {'ok':True,'closed':closed}
+
     def snapshot_curve(self):
         with self._lock:
             mv=sum(p.get('market_value_mxn',0) for p in self.data['positions'])
