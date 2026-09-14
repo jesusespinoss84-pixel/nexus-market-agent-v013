@@ -1,4 +1,4 @@
-import json, threading
+import json, threading, math
 from datetime import datetime, timezone
 from src.config.loader import project_root
 
@@ -27,7 +27,15 @@ class AutonomousPaperAgent:
         max_budget=min(float(cash_mxn), float(self.s['paper_portfolio'].get('starting_cash_mxn',10000))*float(pp.get('max_position_pct',30))/100)
         risk_budget=float(self.s['paper_portfolio'].get('starting_cash_mxn',10000))*float(pp.get('risk_per_trade_pct',1))/100
         risk_per_share=max(px*stop_pct/100,0.01)
-        shares=max(0,min(int(max_budget/px),int(risk_budget/risk_per_share)))
+        allow_frac=bool(pp.get('allow_fractional_us',True) and currency=='USD')
+        if allow_frac:
+            precision=int(pp.get('fractional_precision',4)); step=10**(-precision)
+            raw=max(0,min(max_budget/px,risk_budget/risk_per_share))
+            shares=math.floor(raw/step)*step
+            shares=round(shares,precision)
+            if shares < float(pp.get('min_fractional_shares',0.001)): shares=0
+        else:
+            shares=max(0,min(int(max_budget/px),int(risk_budget/risk_per_share)))
         return {'entry_mxn':round(px,2),'stop_mxn':round(px*(1-stop_pct/100),2),'target_mxn':round(px*(1+target_pct/100),2),'stop_pct':stop_pct,'target_pct':target_pct,'risk_budget_mxn':round(risk_budget,2),'suggested_shares':shares,'suggested_notional_mxn':round(shares*px,2)}
     def enrich(self,row,fx,cash_mxn=10000):
         c=self.cfg

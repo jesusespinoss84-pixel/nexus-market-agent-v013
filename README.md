@@ -1,43 +1,23 @@
-# NEXUS Market Agent V0.15.0 — ONLINE + LIVE PAPER
+# NEXUS Market Agent V0.16.0 — ONLINE + LIVE PAPER + SHADOW LEARNING
 
-Corrección del conflicto de puerto local de V0.13.
+V0.16 mantiene el agente autónomo PAPER de V0.15 y agrega aprendizaje controlado de resultados.
 
-## Puerto automático
-NEXUS intenta usar 5130. Si ya está ocupado, busca automáticamente un puerto libre entre 5131 y 5199.
+## Nuevo en V0.16
 
-La consola muestra el puerto elegido y el navegador se abre solo en la dirección correcta.
+- Aprendizaje PAPER en sombra: guarda decisiones e indicadores existentes en el momento de cada muestra.
+- Evalúa qué ocurrió después a 1 hora, 1 día y 5 días.
+- Resume hit rate de decisión y retorno posterior por tipo de acción.
+- Ajuste interno opcional y acotado del `ai_strength_score`: máximo ±3 puntos y solo tras muestra suficiente.
+- **No cambia automáticamente estrategias validadas, stop, target ni reglas de broker.**
+- Acciones fraccionarias PAPER para emisoras de EE.UU. con capital pequeño.
+- Trading real sigue deshabilitado y requiere intermediario autorizado + confirmación manual.
 
-No necesitas cerrar otro proyecto, matar procesos, desactivar firewall ni cambiar permisos.
+## Filosofía de seguridad
 
-Ejemplo:
-- 5130 ocupado
-- NEXUS detecta 5131 libre
-- abre `http://127.0.0.1:5131`
+El aprendizaje no convierte los scores en probabilidades de ganar. Es una capa experimental que mide desempeño posterior y busca detectar si las decisiones PAPER están aportando señal fuera de muestra. Resultados pasados no garantizan resultados futuros.
 
-En Internet, si el hosting define la variable `PORT`, NEXUS respeta exactamente ese puerto.
+## Render
 
-## Uso local
-1. `INSTALAR_V013_1.bat`
-2. `EJECUTAR_WEB_V013_1.bat`
-3. El navegador se abrirá automáticamente.
+Build: `pip install -r requirements.txt`
 
-Mantiene ONLINE READY + LIVE PAPER de V0.13.
-
-
-## V0.14
-- Centro de operación PAPER manual con monto, stop y objetivo.
-- Panel de NEXUS AI con acción asistida (PAPER BUY / ESPERAR / ESTUDIAR / PAUSAR).
-- Centro de alertas del navegador y soporte opcional de Telegram mediante variables de entorno.
-- Accesos directos a planes, facturación y servicio de Render.
-- Centro legal CNBV y estado de trading real.
-- Trading real deshabilitado por defecto y limitado a futura confirmación manual mediante broker compatible.
-
-
-## V0.15 — Agente autónomo PAPER
-- Motor autónomo PAPER con filtros conservadores.
-- Plan de riesgo por activo: entrada, stop, objetivo, tamaño sugerido y riesgo en MXN.
-- Bitácora persistente de cambios de decisión.
-- Feed de alertas para navegador y Telegram.
-- Apertura PAPER automática solo cuando el setup validado coincide con umbrales mínimos.
-- Cierre PAPER automático cuando el agente entra en condición PAUSAR.
-- La ejecución real sigue bloqueada; no envía órdenes reales.
+Start: `gunicorn app:app --workers 1 --threads 4 --timeout 240`

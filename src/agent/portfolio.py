@@ -56,6 +56,19 @@ class PaperPortfolio:
             except:return False
         return False
 
+    def _paper_shares(self,row,px_mxn,max_budget,risk_budget=None,stop_pct=None):
+        cfg=self.s['paper_portfolio']; allow_frac=bool(cfg.get('allow_fractional_us',True) and row.get('currency')=='USD')
+        if risk_budget is None:
+            raw=max_budget/px_mxn
+        else:
+            risk_per_share=max(px_mxn*float(stop_pct or 0),0.01); raw=min(max_budget/px_mxn,risk_budget/risk_per_share)
+        if allow_frac:
+            import math
+            precision=int(cfg.get('fractional_precision',4)); step=10**(-precision)
+            sh=math.floor(max(0,raw)/step)*step; sh=round(sh,precision)
+            return sh if sh>=float(cfg.get('min_fractional_shares',0.001)) else 0
+        return max(0,int(raw))
+
     def maybe_open(self,row,fx):
         cfg=self.s['paper_portfolio']
         if not cfg.get('enabled') or not row.get('validated_match') or row.get('direction')!='BUY':return False
@@ -75,10 +88,8 @@ class PaperPortfolio:
             risk_budget=self.data['starting_cash_mxn']*float(cfg.get('risk_per_trade_pct',1.0))/100
             stop_pct=float(self.s['risk']['stop_loss_pct'])/100
             risk_per_share=max(px_mxn*stop_pct,0.01)
-            shares_by_risk=int(risk_budget/risk_per_share)
-            shares_by_budget=int(max_budget/px_mxn)
-            sh=max(0,min(shares_by_risk,shares_by_budget))
-            if sh<1:return False
+            sh=self._paper_shares(row,px_mxn,max_budget,risk_budget,stop_pct)
+            if sh<=0:return False
 
             slip=float(cfg.get('slippage_pct',0.05))/100
             entry=px_mxn*(1+slip)
@@ -177,15 +188,15 @@ class PaperPortfolio:
             if px_mxn<=0:return {'ok':False,'error':'INVALID_PRICE'}
             default_budget=self.data['starting_cash_mxn']*float(cfg.get('max_position_pct',30))/100
             budget=max(0,min(float(budget_mxn or default_budget),self.data['cash_mxn']))
-            sh=int(budget/px_mxn)
-            if sh<1:return {'ok':False,'error':'INSUFFICIENT_CASH'}
+            sh=self._paper_shares(row,px_mxn,budget)
+            if sh<=0:return {'ok':False,'error':'INSUFFICIENT_CASH'}
             slip=float(cfg.get('slippage_pct',0.05))/100
             entry=px_mxn*(1+slip)
             cost=entry*sh
             if cost>self.data['cash_mxn']:
-                sh=int(self.data['cash_mxn']/entry)
+                sh=self._paper_shares(row,entry,self.data['cash_mxn'])
                 cost=entry*sh
-            if sh<1:return {'ok':False,'error':'INSUFFICIENT_CASH'}
+            if sh<=0:return {'ok':False,'error':'INSUFFICIENT_CASH'}
             sp=float(stop_pct if stop_pct is not None else self.s['risk']['stop_loss_pct'])/100
             tp=float(target_pct if target_pct is not None else self.s['risk']['take_profit_pct'])/100
             p={

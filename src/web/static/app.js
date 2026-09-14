@@ -200,7 +200,7 @@ function renderPaperLive(pf,tr){
     const up=Number(p.unrealized_mxn)>=0;
     const progress=Math.max(0,Math.min(100,(Number(p.last_price_mxn)-Number(p.stop_mxn))/Math.max(.01,Number(p.target_mxn)-Number(p.stop_mxn))*100));
     return `<div class="positioncard">
-      <div class="positiontop"><div><b>${esc(p.name)}</b><span>${esc(p.symbol)} · ${p.shares} acciones</span></div><span class="paperchip">PAPER</span></div>
+      <div class="positiontop"><div><b>${esc(p.name)}</b><span>${esc(p.symbol)} · ${Number(p.shares).toLocaleString('es-MX',{maximumFractionDigits:4})} acciones</span></div><span class="paperchip">PAPER</span></div>
       <div class="positionprice"><b>${money(p.last_price_mxn,'MXN')}</b><span class="${up?'positive':'negative'}">${money(p.unrealized_mxn,'MXN')}</span></div>
       <div class="riskbar"><span style="width:${progress}%"></span></div>
       <div class="positionmeta"><span>Entrada ${money(p.entry_price_mxn,'MXN')}</span><span>Stop ${money(p.stop_mxn,'MXN')}</span><span>Target ${money(p.target_mxn,'MXN')}</span></div>
@@ -216,13 +216,19 @@ let LAST_ALERT_ID=sessionStorage.getItem('nexusLastAlertId')||'';
 async function refreshAgentOps(){
   if(!$('autonomyStatus'))return;
   try{
-    const [au,dec,feed]=await Promise.all([
+    const [au,dec,feed,learn]=await Promise.all([
       fetch('/api/autonomy/status?_='+Date.now(),{cache:'no-store'}).then(r=>r.json()),
       fetch('/api/agent/decisions?limit=12&_='+Date.now(),{cache:'no-store'}).then(r=>r.json()),
-      fetch('/api/alerts/feed?limit=10&_='+Date.now(),{cache:'no-store'}).then(r=>r.json())
+      fetch('/api/alerts/feed?limit=10&_='+Date.now(),{cache:'no-store'}).then(r=>r.json()),
+      fetch('/api/learning/status?_='+Date.now(),{cache:'no-store'}).then(r=>r.json())
     ]);
     $('autonomyStatus').innerHTML=`<b>Estado: ${au.enabled?'ACTIVO':'INACTIVO'}</b><span>Modo: PAPER únicamente</span><span>Auto entrada PAPER: ${au.auto_open?'SÍ':'NO'} · Auto salida por PAUSA: ${au.auto_close_on_pause?'SÍ':'NO'}</span><span>Trading real automático: NO</span>`;
     $('decisionLog').innerHTML=dec.length?dec.map(d=>`<div class="traderow"><span><b>${esc(d.symbol)} · ${esc(d.action)}</b><small>${dt(d.t)} · ${esc(d.reason||'')}</small></span><span><b>${Number(d.ai_strength_score||0).toFixed(1)}/100</b><small>${d.setup_validated?'setup validado':'sin setup'}</small></span></div>`).join(''):'<div class="emptyline">Aún no hay cambios de decisión registrados.</div>';
+    if($('learningStatus')){
+      $('learningStatus').innerHTML=`<b>Modo: ${esc(learn.mode||'SHADOW_LEARNING')}</b><span>Muestras registradas: ${Number(learn.total_samples||0)}</span><span>Ajuste actual al score IA: ${Number(learn.ai_adjustment_points||0)>=0?'+':''}${Number(learn.ai_adjustment_points||0).toFixed(2)} puntos</span><span>Acciones fraccionarias PAPER EE.UU.: ${learn.fractional_us_enabled?'SÍ':'NO'}</span><span>Cambio automático de pesos de estrategia: NO</span>`;
+      const st=learn.stats||{}; const h=st['1440']||{}; const order=['PAPER BUY','ESPERAR SETUP','ESTUDIAR','PAUSAR'];
+      $('learningStats').innerHTML=order.map(a=>{const x=h[a]||{};return `<div class="traderow"><span><b>${esc(a)}</b><small>Horizonte 1 día · ${Number(x.n||0)} muestras maduras</small></span><span><b>${x.decision_hit_rate_pct==null?'—':Number(x.decision_hit_rate_pct).toFixed(1)+'%'}</b><small>Ret. medio ${x.avg_return_pct==null?'—':pct(x.avg_return_pct)}</small></span></div>`}).join('');
+    }
     if(feed.length){
       const newest=feed[0];
       if(newest.id!==LAST_ALERT_ID){

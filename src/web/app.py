@@ -6,6 +6,7 @@ from src.config.loader import load_settings,project_root
 from src.agent.engine import NexusAgent
 from src.agent.portfolio import PaperPortfolio
 from src.agent.autonomy import AutonomousPaperAgent
+from src.agent.learning import PaperLearningAgent
 from src.agent.validator import SymbolValidator
 from src.data.yfinance_provider import YFinanceProvider
 
@@ -25,6 +26,7 @@ def create_app():
     validator=SymbolValidator(s,provider)
     portfolio=PaperPortfolio(s)
     autonomy=AutonomousPaperAgent(s)
+    learner=PaperLearningAgent(s)
 
     def send_telegram(text):
         token=os.getenv('NEXUS_TELEGRAM_BOT_TOKEN','').strip()
@@ -229,6 +231,18 @@ def create_app():
     def autonomy_status():
         c=s.get('autonomous_agent',{})
         return jsonify({'enabled':bool(c.get('enabled',True)),'paper_only':True,'auto_open':bool(c.get('auto_open',True)),'auto_close_on_pause':bool(c.get('auto_close_on_pause',True)),'real_execution':False,'thresholds':{k:c.get(k) for k in ['min_validation_score','min_composite_score','min_ai_strength','max_vulnerability_for_entry','pause_vulnerability','pause_market_context']}})
+
+
+    @app.get('/api/learning/status')
+    def learning_status():
+        d=learner.summary(); d['enabled']=bool(s.get('learning_agent',{}).get('enabled',True)); d['paper_only']=True
+        d['fractional_us_enabled']=bool(s.get('paper_portfolio',{}).get('allow_fractional_us',True))
+        return jsonify(d)
+
+    @app.get('/api/learning/samples')
+    def learning_samples():
+        limit=max(1,min(int(request.args.get('limit',50)),500))
+        return jsonify(list(reversed(learner.samples(limit))))
 
     @app.get('/api/real-trading/status')
     def real_trading_status():

@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.15.0
+  version: 0.16.0
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -35,6 +35,9 @@ paper_portfolio:
   commission_pct_round_trip: 0.02
   max_open_positions: 4
   cooldown_minutes_after_close: 60
+  allow_fractional_us: true
+  fractional_precision: 4
+  min_fractional_shares: 0.001
 benchmarks:
 - symbol: ^MXX
   name: IPC México
@@ -342,6 +345,9 @@ storage:
   decision_log: storage/decision_log.json
   alert_feed: storage/alert_feed.json
   decision_state: storage/decision_state.json
+  learning_samples: storage/learning_samples.json
+  learning_summary: storage/learning_summary.json
+  learning_state: storage/learning_state.json
 validation:
   enabled: true
   auto_validate: true
@@ -428,3 +434,15 @@ real_trading:
   execution_mode: manual_confirmation_only
   broker: null
   note: "La ejecución real permanece deshabilitada hasta configurar un intermediario compatible y autorizado. NEXUS no ejecuta órdenes reales de forma autónoma."
+
+learning_agent:
+  enabled: true
+  paper_only: true
+  sample_interval_minutes: 60
+  horizons_minutes: [60, 1440, 7200]
+  max_samples: 20000
+  min_samples_for_adjustment: 30
+  adjustment_horizon_minutes: 1440
+  max_ai_adjustment_points: 3.0
+  auto_change_strategy_weights: false
+  note: "Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste pequeño al score interno cuando existe muestra suficiente. No habilita trading real ni modifica estrategias validadas."

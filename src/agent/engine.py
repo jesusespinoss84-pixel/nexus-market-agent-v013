@@ -10,10 +10,11 @@ from src.agent.portfolio import PaperPortfolio
 from src.agent.validator import SymbolValidator
 from src.agent.market_intelligence import MarketIntelligence
 from src.agent.autonomy import AutonomousPaperAgent
+from src.agent.learning import PaperLearningAgent
 
 class NexusAgent:
     def __init__(self):
-        self.s=load_settings();self.root=project_root();self.p=YFinanceProvider(self.s,self.root);self.port=PaperPortfolio(self.s);self.validator=SymbolValidator(self.s,self.p);self.intel=MarketIntelligence(self.s,self.p);self.auto=AutonomousPaperAgent(self.s)
+        self.s=load_settings();self.root=project_root();self.p=YFinanceProvider(self.s,self.root);self.port=PaperPortfolio(self.s);self.validator=SymbolValidator(self.s,self.p);self.intel=MarketIntelligence(self.s,self.p);self.auto=AutonomousPaperAgent(self.s);self.learning=PaperLearningAgent(self.s)
     def static_validated_match(self,symbol,direction,score,row):
         for st in self.s.get('validated_strategies',[]):
             if symbol==st['symbol'] and direction==st['direction'] and score>=int(st['min_score']) and float(row['rsi14'])>=float(st.get('rsi14_min',-999)) and float(row['distance_sma20_pct'])>=float(st.get('distance_sma20_pct_min',-999)):return st
@@ -91,11 +92,15 @@ class NexusAgent:
                 x['ai_action']='ESTUDIAR'
             else:
                 x['ai_action']='OBSERVAR'
-            x['ai_strength_score']=round(0.34*x['composite_score']+0.24*x['validation_score']+0.18*(100-x['vulnerability_score'])+0.14*x.get('market_intelligence_score',50)+0.10*x['score'],1)
+            base_ai=0.34*x['composite_score']+0.24*x['validation_score']+0.18*(100-x['vulnerability_score'])+0.14*x.get('market_intelligence_score',50)+0.10*x['score']
+            learn_adj=self.learning.adjustment()
+            x['learning_adjustment_points']=learn_adj
+            x['ai_strength_score']=round(max(0,min(100,base_ai+learn_adj)),1)
             x=self.auto.enrich(x,fx,self.port.summary().get('cash_mxn',self.s['paper_portfolio']['starting_cash_mxn']))
             snap.append(x)
         snap.sort(key=lambda x:(0 if x['validated_match'] else 1,-x['composite_score'],x['vulnerability_score']))
         transition_alerts=self.auto.process_transitions(snap)
+        learning_summary=self.learning.observe(snap,fx)
         for x in snap:
             if x.get('autonomous_paper_allowed') and self.s.get('autonomous_agent',{}).get('auto_open',True):self.port.maybe_open(x,fx)
             if x.get('autonomous_pause') and self.s.get('autonomous_agent',{}).get('auto_close_on_pause',True) and any(p.get('symbol')==x.get('symbol') for p in self.port.summary().get('positions',[])):
