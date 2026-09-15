@@ -9,6 +9,7 @@ class PaperLearningAgent:
         self.samples_path=self.root/st.get('learning_samples','storage/learning_samples.json')
         self.summary_path=self.root/st.get('learning_summary','storage/learning_summary.json')
         self.state_path=self.root/st.get('learning_state','storage/learning_state.json')
+        self.audit_path=self.root/st.get('learning_audit','storage/learning_audit.json')
         self.cfg=s.get('learning_agent',{})
     def _read(self,p,d):
         try:return json.loads(p.read_text(encoding='utf-8'))
@@ -31,6 +32,18 @@ class PaperLearningAgent:
         if action=='PAUSAR':
             return 1 if ret<=0 else -1
         return 0
+    def _regime(self,row):
+        mc=float(row.get('market_context_score') or 50); vol=float(row.get('volatility_30d_live') or 0); dist=float(row.get('distance_sma20_pct') or 0)
+        if mc <= 30: return 'RISK_OFF'
+        if vol >= 45: return 'ALTA_VOLATILIDAD'
+        if mc >= 65 and dist >= 0: return 'ALCISTA'
+        if mc < 45 and dist < 0: return 'BAJISTA'
+        return 'LATERAL'
+    def _promotion(self,n,hit,avg):
+        if n < int(self.cfg.get('min_samples_per_symbol',12)): return 'EXPERIMENTAL'
+        if n < int(self.cfg.get('min_samples_candidate_review',40)): return 'PAPER'
+        if hit is not None and avg is not None and hit >= float(self.cfg.get('candidate_min_hit_rate_pct',58)) and avg >= float(self.cfg.get('candidate_min_avg_return_pct',0.15)): return 'CANDIDATA A REVISIÓN REAL'
+        return 'PAPER'
     def observe(self,rows,fx):
         if not self.cfg.get('enabled',True): return self.summary()
         now=self._now(); interval=int(self.cfg.get('sample_interval_minutes',60))
@@ -68,6 +81,7 @@ class PaperLearningAgent:
             sample={
                 'id':f"{sym}-{int(now.timestamp())}",'t':now.isoformat(),'symbol':sym,'name':r.get('name'),'action':action,
                 'entry_price_mxn':round(px,4),'currency':r.get('currency'),'setup_validated':bool(r.get('validated_match')),
+                'sector':r.get('sector'),'industry':r.get('industry'),'regime':self._regime(r),
                 'features':{
                     'technical':r.get('score'),'composite':r.get('composite_score'),'validation':r.get('validation_score'),
                     'robustness':r.get('validation_robustness'),'vulnerability':r.get('vulnerability_score'),
@@ -101,8 +115,26 @@ class PaperLearningAgent:
                     stats[hk][a]={'n':n,'avg_return_pct':round(avg,3),'decision_hit_rate_pct':round(win,1),'min_return_pct':round(min(vals),3),'max_return_pct':round(max(vals),3)}
                 else: stats[hk][a]={'n':0,'avg_return_pct':None,'decision_hit_rate_pct':None,'min_return_pct':None,'max_return_pct':None}
         adj=self._compute_adjustment(stats)
+        audit=self._audit(samples)
+        self._write(self.audit_path,audit)
         return {'updated_utc':self._now().isoformat(),'total_samples':len(samples),'horizons_minutes':horizons,'stats':stats,'ai_adjustment_points':adj,
-                'mode':'SHADOW_LEARNING','auto_change_strategy_weights':False,'note':self.cfg.get('note')}
+                'mode':'SHADOW_LEARNING_0161','auto_change_strategy_weights':False,'audit':audit,'note':self.cfg.get('note')}
+    def _audit(self,samples):
+        h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
+        def group(keyfn):
+            out={}
+            for sm in samples:
+                o=sm.get('outcomes',{}).get(h)
+                if not o: continue
+                k=keyfn(sm) or 'SIN_DATO'; z=out.setdefault(k,{'n':0,'returns':[],'hits':0})
+                z['n']+=1; z['returns'].append(float(o.get('return_pct',0))); z['hits']+=1 if float(o.get('direction_score',0))>0 else 0
+            final={}
+            for k,z in out.items():
+                n=z['n']; avg=sum(z['returns'])/n if n else None; hit=z['hits']/n*100 if n else None
+                final[k]={'n':n,'avg_return_pct':round(avg,3) if avg is not None else None,'decision_hit_rate_pct':round(hit,1) if hit is not None else None,'promotion':self._promotion(n,hit,avg)}
+            return final
+        return {'horizon_minutes':int(h),'by_symbol':group(lambda x:x.get('symbol')),'by_regime':group(lambda x:x.get('regime')),'by_sector':group(lambda x:x.get('sector')),'guardrails':{'strategy_weights_auto_change':False,'real_trading':False,'max_global_adjustment_points':float(self.cfg.get('max_ai_adjustment_points',3))}}
+    def audit(self): return self._read(self.audit_path,{'by_symbol':{},'by_regime':{},'by_sector':{},'guardrails':{}})
     def _compute_adjustment(self,stats):
         h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
         st=stats.get(h,{}).get('PAPER BUY',{})

@@ -244,6 +244,10 @@ def create_app():
         limit=max(1,min(int(request.args.get('limit',50)),500))
         return jsonify(list(reversed(learner.samples(limit))))
 
+    @app.get('/api/learning/audit')
+    def learning_audit():
+        return jsonify(learner.audit())
+
     @app.get('/api/real-trading/status')
     def real_trading_status():
         cfg=s.get('real_trading',{})
@@ -274,7 +278,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.15 · Alerta de prueba correcta.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.16.1 · Alerta de prueba correcta.'))
 
     @app.get('/api/platform')
     def platform():

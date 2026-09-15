@@ -1,4 +1,4 @@
-# NEXUS Market Agent V0.16.0 — ONLINE + LIVE PAPER + SHADOW LEARNING
+# NEXUS Market Agent V0.16.1.1 — ONLINE + LIVE PAPER + SHADOW LEARNING
 
 V0.16 mantiene el agente autónomo PAPER de V0.15 y agrega aprendizaje controlado de resultados.
 
