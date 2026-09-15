@@ -1,3 +1,8 @@
+## V0.16.1 FIX
+- Sincroniza etiquetas visibles, título y cache-busting del frontend con V0.16.1.
+- Corrige texto de alerta de prueba Telegram.
+- No cambia la lógica PAPER, aprendizaje ni trading real (sigue deshabilitado).
+
 ## V0.16.1
 - Memoria y auditoría PAPER por empresa, régimen y sector.
 - Regímenes: ALCISTA, BAJISTA, LATERAL, ALTA_VOLATILIDAD, RISK_OFF.
