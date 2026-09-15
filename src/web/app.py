@@ -248,6 +248,10 @@ def create_app():
     def learning_audit():
         return jsonify(learner.audit())
 
+    @app.get('/api/learning/counterfactual')
+    def learning_counterfactual():
+        return jsonify(learner.counterfactual())
+
     @app.get('/api/real-trading/status')
     def real_trading_status():
         cfg=s.get('real_trading',{})
@@ -278,7 +282,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.16.1 · Alerta de prueba correcta.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.16.2 · Alerta de prueba correcta.'))
 
     @app.get('/api/platform')
     def platform():

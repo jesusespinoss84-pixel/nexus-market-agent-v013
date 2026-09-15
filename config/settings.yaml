@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.16.1
+  version: 0.16.2
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -349,6 +349,7 @@ storage:
   learning_summary: storage/learning_summary.json
   learning_state: storage/learning_state.json
   learning_audit: storage/learning_audit.json
+  learning_counterfactual: storage/learning_counterfactual.json
 validation:
   enabled: true
   auto_validate: true
@@ -440,6 +441,8 @@ learning_agent:
   enabled: true
   paper_only: true
   sample_interval_minutes: 60
+  duplicate_same_decision_minutes: 240
+  counterfactual_move_threshold_pct: 0.50
   horizons_minutes: [60, 1440, 7200]
   max_samples: 20000
   min_samples_for_adjustment: 30

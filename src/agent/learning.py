@@ -10,6 +10,7 @@ class PaperLearningAgent:
         self.summary_path=self.root/st.get('learning_summary','storage/learning_summary.json')
         self.state_path=self.root/st.get('learning_state','storage/learning_state.json')
         self.audit_path=self.root/st.get('learning_audit','storage/learning_audit.json')
+        self.counterfactual_path=self.root/st.get('learning_counterfactual','storage/learning_counterfactual.json')
         self.cfg=s.get('learning_agent',{})
     def _read(self,p,d):
         try:return json.loads(p.read_text(encoding='utf-8'))
@@ -39,6 +40,24 @@ class PaperLearningAgent:
         if mc >= 65 and dist >= 0: return 'ALCISTA'
         if mc < 45 and dist < 0: return 'BAJISTA'
         return 'LATERAL'
+    def _confidence(self,n):
+        if n < 5: return 'MUY BAJA'
+        if n < 12: return 'BAJA'
+        if n < 30: return 'MEDIA'
+        if n < 60: return 'ALTA'
+        return 'MUY ALTA'
+    def _context_key(self,sm):
+        return f"{sm.get('symbol') or 'SIN_SIMBOLO'}|{sm.get('regime') or 'SIN_REGIMEN'}|{sm.get('sector') or 'SIN_SECTOR'}|{sm.get('action') or 'SIN_ACCION'}"
+    def _counterfactual_label(self,action,ret):
+        threshold=float(self.cfg.get('counterfactual_move_threshold_pct',0.50))
+        if action in ('ESPERAR SETUP','ESTUDIAR','OBSERVAR','PAUSAR'):
+            if ret >= threshold: return 'OPORTUNIDAD_PERDIDA'
+            if ret <= -threshold: return 'ENTRADA_EVITADA'
+            return 'NEUTRAL'
+        if action=='PAPER BUY':
+            if ret >= threshold: return 'COMPRA_FAVORABLE'
+            if ret <= -threshold: return 'COMPRA_DESFAVORABLE'
+        return 'NEUTRAL'
     def _promotion(self,n,hit,avg):
         if n < int(self.cfg.get('min_samples_per_symbol',12)): return 'EXPERIMENTAL'
         if n < int(self.cfg.get('min_samples_candidate_review',40)): return 'PAPER'
@@ -66,17 +85,24 @@ class PaperLearningAgent:
                 entry=float(sm.get('entry_price_mxn') or 0)
                 if entry<=0: continue
                 ret=(px/entry-1)*100
-                out[k]={'evaluated_utc':now.isoformat(),'price_mxn':round(px,4),'return_pct':round(ret,4),'direction_score':self._direction_score(sm.get('action'),ret)}
+                out[k]={'evaluated_utc':now.isoformat(),'price_mxn':round(px,4),'return_pct':round(ret,4),'direction_score':self._direction_score(sm.get('action'),ret),'counterfactual':self._counterfactual_label(sm.get('action'),ret)}
         # Después registramos nuevas observaciones, máximo una por símbolo por intervalo.
         for r in rows:
             sym=r.get('symbol'); action=r.get('ai_action','OBSERVAR')
             if not sym or not self._eligible_action(action): continue
             px=self._price_mxn(r,fx)
             if px<=0: continue
-            last=state.get(sym,{}).get('last_sample_utc')
+            prev=state.get(sym,{})
+            last=prev.get('last_sample_utc')
             if last:
                 try:
-                    if now-datetime.fromisoformat(last.replace('Z','+00:00')) < timedelta(minutes=interval): continue
+                    age=now-datetime.fromisoformat(last.replace('Z','+00:00'))
+                    # V0.16.2: evita inflar evidencia con decisiones idénticas repetidas.
+                    same_action=prev.get('last_action')==action
+                    same_regime=prev.get('last_regime')==self._regime(r)
+                    dedupe=int(self.cfg.get('duplicate_same_decision_minutes',240))
+                    if age < timedelta(minutes=interval): continue
+                    if same_action and same_regime and age < timedelta(minutes=dedupe): continue
                 except: pass
             sample={
                 'id':f"{sym}-{int(now.timestamp())}",'t':now.isoformat(),'symbol':sym,'name':r.get('name'),'action':action,
@@ -90,7 +116,7 @@ class PaperLearningAgent:
                     'relative_volume':r.get('relative_volume')
                 },'outcomes':{}
             }
-            samples.append(sample); state[sym]={'last_sample_utc':now.isoformat(),'last_action':action}
+            samples.append(sample); state[sym]={'last_sample_utc':now.isoformat(),'last_action':action,'last_regime':sample['regime']}
         maxn=int(self.cfg.get('max_samples',20000)); samples=samples[-maxn:]
         with self._lock:
             self._write(self.samples_path,samples); self._write(self.state_path,state)
@@ -116,9 +142,10 @@ class PaperLearningAgent:
                 else: stats[hk][a]={'n':0,'avg_return_pct':None,'decision_hit_rate_pct':None,'min_return_pct':None,'max_return_pct':None}
         adj=self._compute_adjustment(stats)
         audit=self._audit(samples)
-        self._write(self.audit_path,audit)
+        cf=self._counterfactual(samples)
+        self._write(self.audit_path,audit); self._write(self.counterfactual_path,cf)
         return {'updated_utc':self._now().isoformat(),'total_samples':len(samples),'horizons_minutes':horizons,'stats':stats,'ai_adjustment_points':adj,
-                'mode':'SHADOW_LEARNING_0161','auto_change_strategy_weights':False,'audit':audit,'note':self.cfg.get('note')}
+                'mode':'SHADOW_LEARNING_0162','auto_change_strategy_weights':False,'audit':audit,'counterfactual':cf,'note':self.cfg.get('note')}
     def _audit(self,samples):
         h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
         def group(keyfn):
@@ -133,8 +160,26 @@ class PaperLearningAgent:
                 n=z['n']; avg=sum(z['returns'])/n if n else None; hit=z['hits']/n*100 if n else None
                 final[k]={'n':n,'avg_return_pct':round(avg,3) if avg is not None else None,'decision_hit_rate_pct':round(hit,1) if hit is not None else None,'promotion':self._promotion(n,hit,avg)}
             return final
-        return {'horizon_minutes':int(h),'by_symbol':group(lambda x:x.get('symbol')),'by_regime':group(lambda x:x.get('regime')),'by_sector':group(lambda x:x.get('sector')),'guardrails':{'strategy_weights_auto_change':False,'real_trading':False,'max_global_adjustment_points':float(self.cfg.get('max_ai_adjustment_points',3))}}
-    def audit(self): return self._read(self.audit_path,{'by_symbol':{},'by_regime':{},'by_sector':{},'guardrails':{}})
+        ctx=group(self._context_key)
+        for v in ctx.values(): v['confidence']=self._confidence(v.get('n',0))
+        return {'horizon_minutes':int(h),'by_symbol':group(lambda x:x.get('symbol')),'by_regime':group(lambda x:x.get('regime')),'by_sector':group(lambda x:x.get('sector')),'by_context':ctx,'guardrails':{'strategy_weights_auto_change':False,'real_trading':False,'max_global_adjustment_points':float(self.cfg.get('max_ai_adjustment_points',3))}}
+    def _counterfactual(self,samples):
+        h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
+        counts={k:0 for k in ('OPORTUNIDAD_PERDIDA','ENTRADA_EVITADA','COMPRA_FAVORABLE','COMPRA_DESFAVORABLE','NEUTRAL')}
+        recent=[]; action_returns={}
+        for sm in samples:
+            o=sm.get('outcomes',{}).get(h)
+            if not o: continue
+            ret=float(o.get('return_pct',0)); label=o.get('counterfactual') or self._counterfactual_label(sm.get('action'),ret)
+            counts[label]=counts.get(label,0)+1
+            a=sm.get('action','SIN_ACCION'); action_returns.setdefault(a,[]).append(ret)
+            if label in ('OPORTUNIDAD_PERDIDA','ENTRADA_EVITADA','COMPRA_DESFAVORABLE'):
+                recent.append({'symbol':sm.get('symbol'),'action':a,'result':label,'return_pct':round(ret,3),'regime':sm.get('regime'),'sector':sm.get('sector'),'t':sm.get('t')})
+        compare={}
+        for a,vals in action_returns.items(): compare[a]={'n':len(vals),'avg_return_pct':round(sum(vals)/len(vals),3),'confidence':self._confidence(len(vals))}
+        return {'horizon_minutes':int(h),'counts':counts,'action_comparison':compare,'recent':recent[-25:],'note':'Contrafactual PAPER: mide qué habría ocurrido después de cada decisión; no representa una orden real ni certeza futura.'}
+    def audit(self): return self._read(self.audit_path,{'by_symbol':{},'by_regime':{},'by_sector':{},'by_context':{},'guardrails':{}})
+    def counterfactual(self): return self._read(self.counterfactual_path,{'counts':{},'action_comparison':{},'recent':[]})
     def _compute_adjustment(self,stats):
         h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
         st=stats.get(h,{}).get('PAPER BUY',{})

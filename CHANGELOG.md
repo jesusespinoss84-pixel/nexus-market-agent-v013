@@ -1,3 +1,12 @@
+## V0.16.2
+- Motor contrafactual PAPER a 1 día.
+- Detecta oportunidades perdidas, entradas evitadas y compras favorables/desfavorables.
+- Anti-duplicación: una decisión idéntica en el mismo régimen no vuelve a contar durante 4 horas.
+- Auditoría contextual empresa + régimen + sector + acción.
+- Confianza por tamaño de muestra.
+- Nuevo panel Errores y oportunidades y endpoint /api/learning/counterfactual.
+- Trading real continúa bloqueado.
+
 ## V0.16.1 FIX
 - Sincroniza etiquetas visibles, título y cache-busting del frontend con V0.16.1.
 - Corrige texto de alerta de prueba Telegram.
