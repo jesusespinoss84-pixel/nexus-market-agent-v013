@@ -8,3 +8,12 @@
 - Mantiene límite global de ajuste, no cambia pesos de estrategia.
 - Risk Governor y stress tests V0.16.4 se conservan.
 - Trading real continúa deshabilitado; PAPER únicamente.
+
+## V0.17
+- Broker Gateway para Interactive Brokers (IBKR), desacoplado del motor PAPER.
+- Estado de sesión/autenticación IBKR.
+- Consulta de cuentas preparada.
+- What-If/preview de orden para comisión, coste e impacto cuando IBKR Gateway está disponible.
+- Borrador auditable de orden.
+- Endpoint de envío real explícitamente bloqueado (HTTP 403).
+- PAPER, aprendizaje, validación, Risk Governor y stress tests permanecen intactos.

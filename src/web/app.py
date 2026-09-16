@@ -8,6 +8,7 @@ from src.agent.portfolio import PaperPortfolio
 from src.agent.autonomy import AutonomousPaperAgent
 from src.agent.learning import PaperLearningAgent
 from src.agent.risk_governor import RiskGovernor
+from src.agent.broker_gateway import IBKRBrokerGateway
 from src.agent.validator import SymbolValidator
 from src.data.yfinance_provider import YFinanceProvider
 
@@ -29,6 +30,7 @@ def create_app():
     autonomy=AutonomousPaperAgent(s)
     learner=PaperLearningAgent(s)
     riskgov=RiskGovernor(s)
+    broker=IBKRBrokerGateway(s,root)
 
     def send_telegram(text):
         token=os.getenv('NEXUS_TELEGRAM_BOT_TOKEN','').strip()
@@ -266,14 +268,35 @@ def create_app():
     def risk_governor_stress():
         return jsonify(riskgov.stress_test(portfolio.summary(),readj(root/s['storage']['snapshot'],[])))
 
+    @app.get('/api/broker/status')
+    def broker_status():
+        return jsonify(broker.status())
+
+    @app.get('/api/broker/accounts')
+    def broker_accounts():
+        return jsonify(broker.accounts())
+
+    @app.post('/api/broker/preview')
+    def broker_preview():
+        return jsonify(broker.preview(request.get_json(silent=True) or {}))
+
+    @app.post('/api/broker/draft')
+    def broker_draft():
+        return jsonify(broker.draft(request.get_json(silent=True) or {}))
+
+    @app.post('/api/broker/submit')
+    def broker_submit_blocked():
+        return jsonify({'ok':False,'error':'LIVE_ORDER_TRANSMISSION_BLOCKED','message':'V0.17 no transmite órdenes reales. Revisa el borrador y opera manualmente en el intermediario autorizado.'}),403
+
     @app.get('/api/real-trading/status')
     def real_trading_status():
         cfg=s.get('real_trading',{})
         return jsonify({
             'enabled':bool(cfg.get('enabled',False)),
             'execution_mode':cfg.get('execution_mode','manual_confirmation_only'),
-            'broker':cfg.get('broker'),
+            'broker':cfg.get('broker') or 'IBKR (gateway preparado)',
             'autonomous_execution':False,
+            'live_order_transmission':False,
             'note':cfg.get('note'),
             'requirements':[
                 'Cuenta propia con intermediario autorizado y contrato vigente',
@@ -296,7 +319,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.16.5 · Alerta de prueba correcta.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.17 · Alerta de prueba correcta.'))
 
     @app.get('/api/platform')
     def platform():

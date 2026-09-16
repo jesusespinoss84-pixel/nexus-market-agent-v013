@@ -359,3 +359,38 @@ async function loadRiskGovernor(){
  }catch(e){$('riskGovernor').textContent='No se pudo calcular el Risk Governor.'}
 }
 setTimeout(loadRiskGovernor,1200);setInterval(loadRiskGovernor,60000);
+
+// V0.17 — IBKR Broker Gateway (READ / WHAT-IF / DRAFT only)
+async function loadBrokerGateway(){
+ if(!$('brokerStatus'))return;
+ try{
+  const d=await fetch('/api/broker/status',{cache:'no-store'}).then(r=>r.json());
+  $('brokerStatus').innerHTML=`<b>IBKR Gateway: ${d.enabled?(d.authenticated?'AUTENTICADO':'CONFIGURADO / SIN SESIÓN'):'DESHABILITADO'}</b><span>Modo: ${esc(d.mode||'READ_PREVIEW_ONLY')}</span><span>Conectado: ${d.connected?'SÍ':'NO'} · Autenticado: ${d.authenticated?'SÍ':'NO'} · Cuenta configurada: ${d.account_configured?'SÍ':'NO'}</span><span>Transmisión real desde NEXUS: BLOQUEADA</span><small>${esc(d.message||'')} ${esc(d.render_note||'')}</small>`;
+ }catch(e){$('brokerStatus').textContent='No se pudo consultar el Broker Gateway.'}
+}
+async function brokerAction(kind){
+ const body={conid:Number($('brokerConid').value||0),side:$('brokerSide').value,quantity:Number($('brokerQty').value||0),price:Number($('brokerPrice').value||0),order_type:'LMT',tif:'DAY',symbol:CURRENT?.symbol||null,reason:CURRENT?.ai_action||null};
+ $('brokerResult').textContent=kind==='preview'?'Solicitando What-If a IBKR…':'Creando borrador auditable…';
+ try{
+  const r=await fetch(`/api/broker/${kind}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
+  const d=await r.json();
+  if(kind==='draft'&&d.ok){$('brokerResult').textContent='Borrador creado. NO fue transmitido al mercado.';return}
+  if(d.ok){const x=d.data||{};$('brokerResult').textContent=`What-If recibido. Comisión: ${x.amount?.commission||'—'} · Total: ${x.amount?.total||'—'} · Aviso: ${x.warn||'sin aviso'}`}
+  else $('brokerResult').textContent=`No disponible: ${d.error||'sin conexión/autenticación IBKR'}`;
+ }catch(e){$('brokerResult').textContent='No se pudo completar la consulta al Broker Gateway.'}
+}
+if($('brokerPreview'))$('brokerPreview').onclick=()=>brokerAction('preview');
+if($('brokerDraft'))$('brokerDraft').onclick=()=>brokerAction('draft');
+loadBrokerGateway();setInterval(loadBrokerGateway,60000);
+
+// V0.17 — IBKR Broker Gateway (READ / WHAT-IF / DRAFT only)
+async function loadBrokerGateway(){
+ if(!$('brokerStatus'))return;
+ try{const d=await fetch('/api/broker/status',{cache:'no-store'}).then(r=>r.json());$('brokerStatus').innerHTML=`<b>IBKR Gateway: ${d.enabled?(d.authenticated?'AUTENTICADO':'CONFIGURADO / SIN SESIÓN'):'DESHABILITADO'}</b><span>Modo: ${esc(d.mode||'READ_PREVIEW_ONLY')}</span><span>Conectado: ${d.connected?'SÍ':'NO'} · Autenticado: ${d.authenticated?'SÍ':'NO'} · Cuenta configurada: ${d.account_configured?'SÍ':'NO'}</span><span>Transmisión real desde NEXUS: BLOQUEADA</span><small>${esc(d.message||'')} ${esc(d.render_note||'')}</small>`;}catch(e){$('brokerStatus').textContent='No se pudo consultar el Broker Gateway.'}
+}
+async function brokerAction(kind){
+ const body={conid:Number($('brokerConid').value||0),side:$('brokerSide').value,quantity:Number($('brokerQty').value||0),price:Number($('brokerPrice').value||0),order_type:'LMT',tif:'DAY',symbol:CURRENT?.symbol||null,reason:CURRENT?.ai_action||null};
+ $('brokerResult').textContent=kind==='preview'?'Solicitando What-If a IBKR…':'Creando borrador auditable…';
+ try{const r=await fetch(`/api/broker/${kind}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});const d=await r.json();if(kind==='draft'&&d.ok){$('brokerResult').textContent='Borrador creado. NO fue transmitido al mercado.';return}if(d.ok){const x=d.data||{};$('brokerResult').textContent=`What-If recibido. Comisión: ${x.amount?.commission||'—'} · Total: ${x.amount?.total||'—'} · Aviso: ${x.warn||'sin aviso'}`}else $('brokerResult').textContent=`No disponible: ${d.error||'sin conexión/autenticación IBKR'}`;}catch(e){$('brokerResult').textContent='No se pudo completar la consulta al Broker Gateway.'}
+}
+if($('brokerPreview'))$('brokerPreview').onclick=()=>brokerAction('preview');if($('brokerDraft'))$('brokerDraft').onclick=()=>brokerAction('draft');loadBrokerGateway();setInterval(loadBrokerGateway,60000);

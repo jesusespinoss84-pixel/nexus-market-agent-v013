@@ -485,3 +485,16 @@ risk_governor:
     - {name: CAIDA_BRUSCA, shock_pct: -8, slippage_multiplier: 3.0}
     - {name: VOLATILIDAD_ALTA, shock_pct: -4, slippage_multiplier: 5.0}
     - {name: FX_ADVERSO_US, shock_pct: -3, fx_shock_pct: -5, slippage_multiplier: 2.0}
+
+# V0.17 — Broker Gateway. Lectura/preview solamente; nunca transmite órdenes reales.
+broker_gateway:
+  enabled: false
+  provider: IBKR
+  mode: read_preview_only
+  base_url: https://localhost:5000/v1/api
+  account_id: null
+  verify_tls: false
+  audit_file: storage/broker_audit.json
+  audit_max: 2000
+  live_order_transmission: false
+  manual_confirmation_required: true
