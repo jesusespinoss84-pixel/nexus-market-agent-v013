@@ -1,3 +1,13 @@
+# V0.16.3 FIX — Yahoo/Render
+
+- Corrige `Invalid Crumb` / HTTP 401 de yfinance en Render usando Yahoo chart API como ruta primaria.
+- yfinance queda como respaldo.
+- Circuit breaker de 15 min tras fallos para evitar tormentas de solicitudes.
+- Cache LIVE de 2 min y fallback stale controlado.
+- Restaura `get_live_price` como método de `YFinanceProvider`.
+- No cambia Shadow Learning, contrafactual, calibración ni reglas PAPER.
+- Trading real continúa deshabilitado.
+
 ## V0.16.2
 - Motor contrafactual PAPER a 1 día.
 - Detecta oportunidades perdidas, entradas evitadas y compras favorables/desfavorables.

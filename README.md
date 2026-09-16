@@ -1,6 +1,6 @@
-# NEXUS Market Agent V0.16.3 — CALIBRACIÓN + EVIDENCIA + FRICCIÓN PAPER
+# NEXUS Market Agent V0.16.3 FIX — CALIBRACIÓN + EVIDENCIA + FRICCIÓN PAPER
 
-V0.16.3 conserva V0.16.2 y agrega una capa de calibración auditable.
+V0.16.3 FIX conserva V0.16.2 y agrega una capa de calibración auditable.
 
 - Compara resultados maduros a 1 hora, 1 día y 5 días.
 - Clasifica evidencia como INSUFICIENTE, INICIAL, MODERADA o SÓLIDA según muestra independiente.
