@@ -11,10 +11,11 @@ from src.agent.validator import SymbolValidator
 from src.agent.market_intelligence import MarketIntelligence
 from src.agent.autonomy import AutonomousPaperAgent
 from src.agent.learning import PaperLearningAgent
+from src.agent.risk_governor import RiskGovernor
 
 class NexusAgent:
     def __init__(self):
-        self.s=load_settings();self.root=project_root();self.p=YFinanceProvider(self.s,self.root);self.port=PaperPortfolio(self.s);self.validator=SymbolValidator(self.s,self.p);self.intel=MarketIntelligence(self.s,self.p);self.auto=AutonomousPaperAgent(self.s);self.learning=PaperLearningAgent(self.s)
+        self.s=load_settings();self.root=project_root();self.p=YFinanceProvider(self.s,self.root);self.port=PaperPortfolio(self.s);self.validator=SymbolValidator(self.s,self.p);self.intel=MarketIntelligence(self.s,self.p);self.auto=AutonomousPaperAgent(self.s);self.learning=PaperLearningAgent(self.s);self.riskgov=RiskGovernor(self.s)
     def static_validated_match(self,symbol,direction,score,row):
         for st in self.s.get('validated_strategies',[]):
             if symbol==st['symbol'] and direction==st['direction'] and score>=int(st['min_score']) and float(row['rsi14'])>=float(st.get('rsi14_min',-999)) and float(row['distance_sma20_pct'])>=float(st.get('distance_sma20_pct_min',-999)):return st
@@ -101,6 +102,14 @@ class NexusAgent:
         snap.sort(key=lambda x:(0 if x['validated_match'] else 1,-x['composite_score'],x['vulnerability_score']))
         transition_alerts=self.auto.process_transitions(snap)
         learning_summary=self.learning.observe(snap,fx)
+        risk_state=self.riskgov.evaluate(self.port.summary(),snap)
+        self.riskgov.stress_test(self.port.summary(),snap)
+        for x in snap:
+            x['risk_governor_level']=risk_state.get('level','NORMAL')
+            x['risk_governor_block']=bool(risk_state.get('block_new_entries',False))
+            if x['risk_governor_block'] and x.get('autonomous_paper_allowed'):
+                x['autonomous_paper_allowed']=False
+                if x.get('ai_action')=='PAPER BUY':x['ai_action']='ESPERAR RIESGO'
         for x in snap:
             if x.get('autonomous_paper_allowed') and self.s.get('autonomous_agent',{}).get('auto_open',True):self.port.maybe_open(x,fx)
             if x.get('autonomous_pause') and self.s.get('autonomous_agent',{}).get('auto_close_on_pause',True) and any(p.get('symbol')==x.get('symbol') for p in self.port.summary().get('positions',[])):

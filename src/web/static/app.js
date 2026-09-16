@@ -348,3 +348,13 @@ refresh().catch(e=>{
 });
 setInterval(()=>refresh({forceSymbol:CURRENT?.symbol}),30000);
 
+
+async function loadRiskGovernor(){
+ if(!$('riskGovernor'))return;
+ try{
+  const [g,st]=await Promise.all([fetch('/api/risk-governor/status',{cache:'no-store'}).then(r=>r.json()),fetch('/api/risk-governor/stress',{cache:'no-store'}).then(r=>r.json())]);
+  $('riskGovernor').innerHTML=`<b>Estado: ${esc(g.level||'—')}</b><span>Nuevas entradas PAPER: ${g.block_new_entries?'BLOQUEADAS':'permitidas'}</span><span>Exposición ${Number(g.exposure_pct||0).toFixed(1)}% · pérdida diaria ${Number(g.daily_loss_pct||0).toFixed(2)}% · drawdown ${Number(g.drawdown_pct||0).toFixed(2)}%</span><span>Mayor sector ${Number(g.max_sector_exposure_pct||0).toFixed(1)}%</span><small>${esc((g.reasons||[]).join(' · '))}</small>`;
+  $('stressTests').innerHTML=(st.scenarios||[]).map(x=>`<div class="labrow"><b>${esc(x.name)}</b><span>Equity estrés ${money(x.equity_stressed_mxn,'MXN')} · impacto ${Number(x.loss_pct||0).toFixed(2)}% · shock ${Number(x.shock_pct||0).toFixed(1)}%</span></div>`).join('')||'<div class="emptyline">Sin escenarios.</div>';
+ }catch(e){$('riskGovernor').textContent='No se pudo calcular el Risk Governor.'}
+}
+setTimeout(loadRiskGovernor,1200);setInterval(loadRiskGovernor,60000);

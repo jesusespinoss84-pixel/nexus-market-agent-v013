@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.16.3
+  version: 0.16.4
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -351,6 +351,8 @@ storage:
   learning_audit: storage/learning_audit.json
   learning_counterfactual: storage/learning_counterfactual.json
   learning_calibration: storage/learning_calibration.json
+  risk_governor: storage/risk_governor.json
+  stress_test: storage/stress_test.json
 validation:
   enabled: true
   auto_validate: true
@@ -465,3 +467,21 @@ learning_agent:
     fx_buffer_pct_us: 0.05
   calibration_max_adjustment_points: 3.0
   note: "Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste pequeño al score interno cuando existe muestra suficiente. No habilita trading real ni modifica estrategias validadas."
+
+risk_governor:
+  enabled: true
+  paper_only: true
+  max_total_exposure_pct: 70
+  max_sector_exposure_pct: 40
+  daily_loss_caution_pct: 1.5
+  daily_loss_defensive_pct: 2.5
+  daily_loss_pause_pct: 4.0
+  drawdown_caution_pct: 3.0
+  drawdown_defensive_pct: 5.0
+  drawdown_pause_pct: 8.0
+  block_new_entries_in_defensive: true
+  block_new_entries_in_pause: true
+  stress_scenarios:
+    - {name: CAIDA_BRUSCA, shock_pct: -8, slippage_multiplier: 3.0}
+    - {name: VOLATILIDAD_ALTA, shock_pct: -4, slippage_multiplier: 5.0}
+    - {name: FX_ADVERSO_US, shock_pct: -3, fx_shock_pct: -5, slippage_multiplier: 2.0}

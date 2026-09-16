@@ -7,6 +7,7 @@ from src.agent.engine import NexusAgent
 from src.agent.portfolio import PaperPortfolio
 from src.agent.autonomy import AutonomousPaperAgent
 from src.agent.learning import PaperLearningAgent
+from src.agent.risk_governor import RiskGovernor
 from src.agent.validator import SymbolValidator
 from src.data.yfinance_provider import YFinanceProvider
 
@@ -27,6 +28,7 @@ def create_app():
     portfolio=PaperPortfolio(s)
     autonomy=AutonomousPaperAgent(s)
     learner=PaperLearningAgent(s)
+    riskgov=RiskGovernor(s)
 
     def send_telegram(text):
         token=os.getenv('NEXUS_TELEGRAM_BOT_TOKEN','').strip()
@@ -256,6 +258,14 @@ def create_app():
     def learning_calibration():
         return jsonify(learner.calibration())
 
+    @app.get('/api/risk-governor/status')
+    def risk_governor_status():
+        return jsonify(riskgov.evaluate(portfolio.summary(),readj(root/s['storage']['snapshot'],[])))
+
+    @app.get('/api/risk-governor/stress')
+    def risk_governor_stress():
+        return jsonify(riskgov.stress_test(portfolio.summary(),readj(root/s['storage']['snapshot'],[])))
+
     @app.get('/api/real-trading/status')
     def real_trading_status():
         cfg=s.get('real_trading',{})
@@ -286,7 +296,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.16.3 · Alerta de prueba correcta.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.16.4 · Alerta de prueba correcta.'))
 
     @app.get('/api/platform')
     def platform():
