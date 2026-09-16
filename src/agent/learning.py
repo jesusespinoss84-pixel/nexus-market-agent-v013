@@ -147,8 +147,9 @@ class PaperLearningAgent:
         self._write(self.audit_path,audit); self._write(self.counterfactual_path,cf)
         cal=self._calibration(samples,horizons)
         self._write(self.calibration_path,cal)
+        maturity=self._maturity_report(samples,horizons,stats,cal)
         return {'updated_utc':self._now().isoformat(),'total_samples':len(samples),'horizons_minutes':horizons,'stats':stats,'ai_adjustment_points':adj,
-                'mode':'SHADOW_LEARNING_0163','auto_change_strategy_weights':False,'audit':audit,'counterfactual':cf,'calibration':cal,'note':self.cfg.get('note')}
+                'mode':'SHADOW_LEARNING_0165','auto_change_strategy_weights':False,'audit':audit,'counterfactual':cf,'calibration':cal,'maturity':maturity,'note':self.cfg.get('note')}
     def _audit(self,samples):
         h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
         def group(keyfn):
@@ -225,15 +226,38 @@ class PaperLearningAgent:
 
     def audit(self): return self._read(self.audit_path,{'by_symbol':{},'by_regime':{},'by_sector':{},'by_context':{},'guardrails':{}})
     def counterfactual(self): return self._read(self.counterfactual_path,{'counts':{},'action_comparison':{},'recent':[]})
+    def _maturity_report(self,samples,horizons,stats,cal):
+        total=max(1,len(samples)); rows=[]
+        for h in horizons:
+            hk=str(h); matured=sum(1 for sm in samples if hk in sm.get('outcomes',{}))
+            rows.append({'minutes':h,'matured':matured,'pending':max(0,len(samples)-matured),'coverage_pct':round(matured/total*100,1) if samples else 0.0})
+        h1=stats.get('60',{}).get('PAPER BUY',{}); h24=stats.get('1440',{}).get('PAPER BUY',{}); h5=stats.get('7200',{}).get('PAPER BUY',{})
+        checks=[]
+        for label,x in [('1H',h1),('1D',h24),('5D',h5)]:
+            n=int(x.get('n') or 0); hit=x.get('decision_hit_rate_pct'); avg=x.get('avg_return_pct')
+            checks.append({'horizon':label,'n':n,'hit_rate_pct':hit,'avg_return_pct':avg,'confidence':self._confidence(n)})
+        mature_1d=int(h24.get('n') or 0); min_adj=int(self.cfg.get('min_samples_for_adjustment',30))
+        ready=mature_1d>=min_adj
+        return {'horizons':rows,'paper_buy_consistency':checks,'adjustment_ready':ready,'required_1d_paper_buy_samples':min_adj,
+                'remaining_1d_paper_buy_samples':max(0,min_adj-mature_1d),'guardrail':'El aprendizaje sólo ajusta de forma acotada el score interno; no cambia pesos de estrategia ni habilita trading real.'}
+
     def _compute_adjustment(self,stats):
-        h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
-        st=stats.get(h,{}).get('PAPER BUY',{})
+        h='1440'; st=stats.get(h,{}).get('PAPER BUY',{})
         n=int(st.get('n') or 0); mn=int(self.cfg.get('min_samples_for_adjustment',30)); cap=float(self.cfg.get('max_ai_adjustment_points',3))
         if n<mn:return 0.0
-        hit=float(st.get('decision_hit_rate_pct') or 50)
-        # 50% -> 0; 65% -> +cap; 35% -> -cap. Acotado para evitar sobreajuste.
+        hit=float(st.get('decision_hit_rate_pct') or 50); avg=float(st.get('avg_return_pct') or 0)
+        # Base conservadora: consistencia direccional a 1 día.
         raw=(hit-50)/15*cap
+        # V0.16.5: exige coherencia temporal. Si 1h contradice fuertemente 1d, reduce el ajuste.
+        h1=stats.get('60',{}).get('PAPER BUY',{}); n1=int(h1.get('n') or 0)
+        if n1>=mn:
+            hit1=float(h1.get('decision_hit_rate_pct') or 50)
+            if (hit-50)*(hit1-50)<0: raw*=0.5
+        # Si el retorno bruto medio a 1d no acompaña la dirección del ajuste, también se atenúa.
+        if raw>0 and avg<=0: raw*=0.5
+        if raw<0 and avg>=0: raw*=0.5
         return round(max(-cap,min(cap,raw)),2)
+
     def adjustment(self):
         return float(self._read(self.summary_path,{}).get('ai_adjustment_points',0) or 0)
     def summary(self):

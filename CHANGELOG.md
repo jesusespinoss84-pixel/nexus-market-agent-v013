@@ -1,7 +1,10 @@
-# V0.16.4
+# V0.16.5
 
-- Risk Governor PAPER.
-- Control de exposición, pérdida diaria y drawdown.
-- Stress tests de caída, volatilidad y FX.
-- Bloqueo de nuevas entradas PAPER en estados defensivos configurados.
-- Trading real deshabilitado.
+- Corrige etiqueta interna a SHADOW_LEARNING_0165.
+- Nuevo panel Madurez del aprendizaje: 1 h, 1 día y 5 días.
+- Muestra maduras, pendientes y cobertura por horizonte.
+- El ajuste IA permanece bloqueado hasta reunir muestra PAPER BUY suficiente a 1 día.
+- Ajuste interno más conservador: compara consistencia 1 h vs 1 día y atenúa señales contradictorias.
+- Mantiene límite global de ajuste, no cambia pesos de estrategia.
+- Risk Governor y stress tests V0.16.4 se conservan.
+- Trading real continúa deshabilitado; PAPER únicamente.

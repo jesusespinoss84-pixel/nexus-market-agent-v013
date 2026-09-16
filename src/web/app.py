@@ -296,7 +296,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.16.4 · Alerta de prueba correcta.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.16.5 · Alerta de prueba correcta.'))
 
     @app.get('/api/platform')
     def platform():
