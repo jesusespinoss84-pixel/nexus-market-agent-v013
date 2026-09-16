@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.16.2
+  version: 0.16.3
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -350,6 +350,7 @@ storage:
   learning_state: storage/learning_state.json
   learning_audit: storage/learning_audit.json
   learning_counterfactual: storage/learning_counterfactual.json
+  learning_calibration: storage/learning_calibration.json
 validation:
   enabled: true
   auto_validate: true
@@ -454,4 +455,13 @@ learning_agent:
   candidate_min_hit_rate_pct: 58
   candidate_min_avg_return_pct: 0.15
   auto_change_strategy_weights: false
+  evidence_levels:
+    initial: 8
+    moderate: 20
+    solid: 50
+  friction_model:
+    enabled: true
+    use_paper_portfolio_costs: true
+    fx_buffer_pct_us: 0.05
+  calibration_max_adjustment_points: 3.0
   note: "Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste pequeño al score interno cuando existe muestra suficiente. No habilita trading real ni modifica estrategias validadas."

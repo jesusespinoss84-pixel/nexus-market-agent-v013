@@ -28,3 +28,12 @@
 - Soporte de acciones fraccionarias PAPER para EE.UU.
 - Nuevo panel y APIs `/api/learning/status` y `/api/learning/samples`.
 - Trading real permanece bloqueado.
+
+
+## V0.16.3
+- Calibración multi-horizonte 1h/1d/5d.
+- Nivel de evidencia por tamaño de muestra.
+- Retorno neto estimado después de fricción PAPER.
+- Endpoint `/api/learning/calibration`.
+- Panel Calibración y evidencia.
+- Sin trading real ni cambios automáticos de estrategias.

@@ -11,6 +11,7 @@ class PaperLearningAgent:
         self.state_path=self.root/st.get('learning_state','storage/learning_state.json')
         self.audit_path=self.root/st.get('learning_audit','storage/learning_audit.json')
         self.counterfactual_path=self.root/st.get('learning_counterfactual','storage/learning_counterfactual.json')
+        self.calibration_path=self.root/st.get('learning_calibration','storage/learning_calibration.json')
         self.cfg=s.get('learning_agent',{})
     def _read(self,p,d):
         try:return json.loads(p.read_text(encoding='utf-8'))
@@ -144,8 +145,10 @@ class PaperLearningAgent:
         audit=self._audit(samples)
         cf=self._counterfactual(samples)
         self._write(self.audit_path,audit); self._write(self.counterfactual_path,cf)
+        cal=self._calibration(samples,horizons)
+        self._write(self.calibration_path,cal)
         return {'updated_utc':self._now().isoformat(),'total_samples':len(samples),'horizons_minutes':horizons,'stats':stats,'ai_adjustment_points':adj,
-                'mode':'SHADOW_LEARNING_0162','auto_change_strategy_weights':False,'audit':audit,'counterfactual':cf,'note':self.cfg.get('note')}
+                'mode':'SHADOW_LEARNING_0163','auto_change_strategy_weights':False,'audit':audit,'counterfactual':cf,'calibration':cal,'note':self.cfg.get('note')}
     def _audit(self,samples):
         h=str(int(self.cfg.get('adjustment_horizon_minutes',1440)))
         def group(keyfn):
@@ -178,6 +181,48 @@ class PaperLearningAgent:
         compare={}
         for a,vals in action_returns.items(): compare[a]={'n':len(vals),'avg_return_pct':round(sum(vals)/len(vals),3),'confidence':self._confidence(len(vals))}
         return {'horizon_minutes':int(h),'counts':counts,'action_comparison':compare,'recent':recent[-25:],'note':'Contrafactual PAPER: mide qué habría ocurrido después de cada decisión; no representa una orden real ni certeza futura.'}
+
+    def _evidence_level(self,n):
+        lv=self.cfg.get('evidence_levels',{})
+        a=int(lv.get('initial',8)); m=int(lv.get('moderate',20)); solid=int(lv.get('solid',50))
+        if n < a: return 'INSUFICIENTE'
+        if n < m: return 'INICIAL'
+        if n < solid: return 'MODERADA'
+        return 'SÓLIDA'
+    def _friction_pct(self,sm):
+        fm=self.cfg.get('friction_model',{})
+        if not fm.get('enabled',True): return 0.0
+        pp=self.s.get('paper_portfolio',{})
+        # Estimación conservadora PAPER de ida/vuelta para comparar señal bruta vs señal después de fricción.
+        slip=float(pp.get('slippage_pct',0.05))*2
+        comm=float(pp.get('commission_pct_round_trip',0.02))
+        fx=float(fm.get('fx_buffer_pct_us',0.05)) if sm.get('currency')=='USD' else 0.0
+        return slip+comm+fx
+    def _calibration(self,samples,horizons):
+        report={'updated_utc':self._now().isoformat(),'horizons':{},'guardrails':{'paper_only':True,'auto_strategy_change':False,'real_execution':False}}
+        for h in horizons:
+            hk=str(h); by_action={}
+            for action in ('PAPER BUY','ESPERAR SETUP','ESTUDIAR','OBSERVAR','PAUSAR'):
+                gross=[]; net=[]; hits=[]
+                for sm in samples:
+                    if sm.get('action')!=action: continue
+                    o=sm.get('outcomes',{}).get(hk)
+                    if not o: continue
+                    r=float(o.get('return_pct',0)); gross.append(r)
+                    # Para una entrada hipotética, el retorno neto descuenta fricción PAPER estimada.
+                    net.append(r-self._friction_pct(sm)); hits.append(1 if float(o.get('direction_score',0))>0 else 0)
+                n=len(gross)
+                by_action[action]={'n':n,'evidence':self._evidence_level(n),'avg_gross_return_pct':round(sum(gross)/n,3) if n else None,
+                    'avg_net_after_friction_pct':round(sum(net)/n,3) if n else None,'decision_consistency_pct':round(sum(hits)/n*100,1) if n else None}
+            report['horizons'][hk]=by_action
+        # La calibración informa; no reescribe estrategias ni eleva el límite global del ajuste IA.
+        report['friction']={'slippage_round_trip_pct':round(float(self.s.get('paper_portfolio',{}).get('slippage_pct',0.05))*2,3),
+            'commission_round_trip_pct':float(self.s.get('paper_portfolio',{}).get('commission_pct_round_trip',0.02)),
+            'fx_buffer_pct_us':float(self.cfg.get('friction_model',{}).get('fx_buffer_pct_us',0.05))}
+        report['note']='Calibración PAPER: separa retorno bruto y retorno estimado después de fricción. Los niveles de evidencia describen tamaño de muestra, no probabilidad de ganar.'
+        return report
+    def calibration(self): return self._read(self.calibration_path,{'horizons':{},'friction':{},'guardrails':{}})
+
     def audit(self): return self._read(self.audit_path,{'by_symbol':{},'by_regime':{},'by_sector':{},'by_context':{},'guardrails':{}})
     def counterfactual(self): return self._read(self.counterfactual_path,{'counts':{},'action_comparison':{},'recent':[]})
     def _compute_adjustment(self,stats):

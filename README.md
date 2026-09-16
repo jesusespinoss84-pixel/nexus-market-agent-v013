@@ -1,23 +1,16 @@
-# NEXUS Market Agent V0.16.2 — SHADOW LEARNING + CONTRAFACTUAL PAPER
+# NEXUS Market Agent V0.16.3 — CALIBRACIÓN + EVIDENCIA + FRICCIÓN PAPER
 
-V0.16 mantiene el agente autónomo PAPER de V0.15 y agrega aprendizaje controlado de resultados.
+V0.16.3 conserva V0.16.2 y agrega una capa de calibración auditable.
 
-## Nuevo en V0.16
-
-- Aprendizaje PAPER en sombra: guarda decisiones e indicadores existentes en el momento de cada muestra.
-- Evalúa qué ocurrió después a 1 hora, 1 día y 5 días.
-- Resume hit rate de decisión y retorno posterior por tipo de acción.
-- Ajuste interno opcional y acotado del `ai_strength_score`: máximo ±3 puntos y solo tras muestra suficiente.
-- **No cambia automáticamente estrategias validadas, stop, target ni reglas de broker.**
-- Acciones fraccionarias PAPER para emisoras de EE.UU. con capital pequeño.
-- Trading real sigue deshabilitado y requiere intermediario autorizado + confirmación manual.
-
-## Filosofía de seguridad
-
-El aprendizaje no convierte los scores en probabilidades de ganar. Es una capa experimental que mide desempeño posterior y busca detectar si las decisiones PAPER están aportando señal fuera de muestra. Resultados pasados no garantizan resultados futuros.
+- Compara resultados maduros a 1 hora, 1 día y 5 días.
+- Clasifica evidencia como INSUFICIENTE, INICIAL, MODERADA o SÓLIDA según muestra independiente.
+- Reporta retorno bruto y retorno PAPER estimado después de slippage, comisión y buffer USD/MXN.
+- Mantiene contrafactual, anti-duplicación, auditor por contexto y acciones fraccionarias PAPER.
+- No cambia automáticamente pesos de estrategias validadas.
+- Trading real continúa deshabilitado.
+- Los scores y niveles de evidencia son métricas internas de investigación, no probabilidades de ganar.
 
 ## Render
-
 Build: `pip install -r requirements.txt`
 
 Start: `gunicorn app:app --workers 1 --threads 4 --timeout 240`
