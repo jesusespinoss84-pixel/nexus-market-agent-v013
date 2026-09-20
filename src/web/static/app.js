@@ -394,3 +394,17 @@ async function brokerAction(kind){
  try{const r=await fetch(`/api/broker/${kind}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});const d=await r.json();if(kind==='draft'&&d.ok){$('brokerResult').textContent='Borrador creado. NO fue transmitido al mercado.';return}if(d.ok){const x=d.data||{};$('brokerResult').textContent=`What-If recibido. Comisión: ${x.amount?.commission||'—'} · Total: ${x.amount?.total||'—'} · Aviso: ${x.warn||'sin aviso'}`}else $('brokerResult').textContent=`No disponible: ${d.error||'sin conexión/autenticación IBKR'}`;}catch(e){$('brokerResult').textContent='No se pudo completar la consulta al Broker Gateway.'}
 }
 if($('brokerPreview'))$('brokerPreview').onclick=()=>brokerAction('preview');if($('brokerDraft'))$('brokerDraft').onclick=()=>brokerAction('draft');loadBrokerGateway();setInterval(loadBrokerGateway,60000);
+
+// V0.17.1 - Local Broker Bridge TWS PAPER / SOLO LECTURA
+loadBrokerGateway = async function(){
+ if(!$('brokerStatus'))return;
+ try{
+  const d=await fetch('/api/broker/status?_='+Date.now(),{cache:'no-store'}).then(r=>r.json());
+  if(d.local_bridge){
+   $('brokerStatus').innerHTML=`<b>IBKR TWS Paper: ${d.local_bridge_connected?'CONECTADO':'SIN CONEXIÓN'}</b><span>Puente: NEXUS LOCAL BROKER BRIDGE</span><span>Modo: ${esc(d.mode||'TWS_PAPER_READ_ONLY')}</span><span>Último reporte: ${d.local_bridge_received_utc?dt(d.local_bridge_received_utc):'—'}</span><span>Transmisión real desde NEXUS: BLOQUEADA</span><small>${esc(d.local_bridge_message||'')}</small>`;
+  }else{
+   $('brokerStatus').innerHTML=`<b>IBKR TWS Paper: ESPERANDO PUENTE LOCAL</b><span>Modo: PAPER / SOLO LECTURA</span><span>Transmisión real desde NEXUS: BLOQUEADA</span><small>${esc(d.local_bridge_message||'Esperando primer reporte desde la PC.')}</small>`;
+  }
+ }catch(e){$('brokerStatus').textContent='No se pudo consultar el Broker Gateway.'}
+};
+loadBrokerGateway();

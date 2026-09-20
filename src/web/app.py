@@ -9,6 +9,7 @@ from src.agent.autonomy import AutonomousPaperAgent
 from src.agent.learning import PaperLearningAgent
 from src.agent.risk_governor import RiskGovernor
 from src.agent.broker_gateway import IBKRBrokerGateway
+from src.agent.local_bridge_cloud import LocalBridgeCloudState
 from src.agent.validator import SymbolValidator
 from src.data.yfinance_provider import YFinanceProvider
 
@@ -31,6 +32,7 @@ def create_app():
     learner=PaperLearningAgent(s)
     riskgov=RiskGovernor(s)
     broker=IBKRBrokerGateway(s,root)
+    local_bridge=LocalBridgeCloudState(root)
 
     def send_telegram(text):
         token=os.getenv('NEXUS_TELEGRAM_BOT_TOKEN','').strip()
@@ -270,7 +272,22 @@ def create_app():
 
     @app.get('/api/broker/status')
     def broker_status():
-        return jsonify(broker.status())
+        return jsonify(local_bridge.status(broker.status()))
+
+    @app.get('/api/broker/local-latest')
+    def broker_local_latest():
+        d=local_bridge.latest()
+        if not d:return jsonify({'ok':False,'status':'WAITING_FOR_LOCAL_BRIDGE','order_transmission_available':False}),404
+        return jsonify({'ok':True,**d,'order_transmission_available':False})
+
+    @app.post('/api/broker/local-report')
+    def broker_local_report():
+        token=request.headers.get('X-NEXUS-BRIDGE-TOKEN','')
+        ok,out=local_bridge.accept(token,request.get_json(silent=True) or {})
+        if not ok:
+            code=401 if out=='UNAUTHORIZED' else 503 if out=='SERVER_TOKEN_NOT_CONFIGURED' else 400
+            return jsonify({'ok':False,'error':out}),code
+        return jsonify({'ok':True,'received_utc':out.get('received_utc'),'order_transmission_available':False})
 
     @app.get('/api/broker/accounts')
     def broker_accounts():
