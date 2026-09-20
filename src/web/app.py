@@ -270,6 +270,26 @@ def create_app():
     def risk_governor_stress():
         return jsonify(riskgov.stress_test(portfolio.summary(),readj(root/s['storage']['snapshot'],[])))
 
+    @app.post('/api/local-bridge/report')
+    def local_bridge_report_v0172():
+        # Receptor V0.17.2 deliberadamente simple para Bridge local.
+        # Solo acepta estado PAPER/lectura. No existe transmision de ordenes.
+        token=(request.headers.get('X-NEXUS-BRIDGE-TOKEN') or '').strip()
+        payload=request.get_json(silent=True)
+        if payload is None:
+            return jsonify({'ok':False,'error':'JSON_REQUIRED','version':'0.17.2'}),400
+        ok,out=local_bridge.accept(token,payload)
+        if not ok:
+            code=401 if out=='UNAUTHORIZED' else 503 if out=='SERVER_TOKEN_NOT_CONFIGURED' else 400
+            return jsonify({'ok':False,'error':out,'version':'0.17.2'}),code
+        return jsonify({'ok':True,'version':'0.17.2','received_utc':out.get('received_utc'),
+                        'mode':'IBKR_TWS_PAPER_READ_ONLY','order_transmission_available':False})
+
+    @app.get('/api/local-bridge/ping')
+    def local_bridge_ping_v0172():
+        return jsonify({'ok':True,'version':'0.17.2','receiver':'READY',
+                        'order_transmission_available':False})
+
     @app.get('/api/broker/status')
     def broker_status():
         return jsonify(local_bridge.status(broker.status()))
