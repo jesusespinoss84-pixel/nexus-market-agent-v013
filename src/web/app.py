@@ -270,24 +270,37 @@ def create_app():
     def risk_governor_stress():
         return jsonify(riskgov.stress_test(portfolio.summary(),readj(root/s['storage']['snapshot'],[])))
 
-    @app.post('/api/local-bridge/report')
-    def local_bridge_report_v0172():
-        # Receptor V0.17.2 deliberadamente simple para Bridge local.
-        # Solo acepta estado PAPER/lectura. No existe transmision de ordenes.
+    @app.route('/api/local-bridge/report',methods=['POST'])
+    def local_bridge_report_v0173():
         token=(request.headers.get('X-NEXUS-BRIDGE-TOKEN') or '').strip()
-        payload=request.get_json(silent=True)
-        if payload is None:
-            return jsonify({'ok':False,'error':'JSON_REQUIRED','version':'0.17.2'}),400
+        raw=request.get_data(cache=True,as_text=False) or b''
+        diag={'ok':False,'version':'0.17.3','method':request.method,
+              'content_type':request.content_type,'content_length':len(raw),
+              'token_present':bool(token),'order_transmission_available':False}
+        if not raw:
+            diag['error']='EMPTY_BODY'
+            return jsonify(diag),422
+        try:
+            payload=json.loads(raw.decode('utf-8-sig'))
+        except Exception as e:
+            diag['error']='INVALID_JSON'; diag['detail']=str(e)[:160]
+            diag['body_prefix']=raw[:80].decode('utf-8','replace')
+            return jsonify(diag),422
+        if not isinstance(payload,dict):
+            diag['error']='JSON_OBJECT_REQUIRED'
+            return jsonify(diag),422
         ok,out=local_bridge.accept(token,payload)
         if not ok:
-            code=401 if out=='UNAUTHORIZED' else 503 if out=='SERVER_TOKEN_NOT_CONFIGURED' else 400
-            return jsonify({'ok':False,'error':out,'version':'0.17.2'}),code
-        return jsonify({'ok':True,'version':'0.17.2','received_utc':out.get('received_utc'),
-                        'mode':'IBKR_TWS_PAPER_READ_ONLY','order_transmission_available':False})
+            code=401 if out=='UNAUTHORIZED' else 503 if out=='SERVER_TOKEN_NOT_CONFIGURED' else 422
+            diag['error']=out
+            return jsonify(diag),code
+        return jsonify({'ok':True,'version':'0.17.3','received_utc':out.get('received_utc'),
+                        'mode':'IBKR_TWS_PAPER_READ_ONLY','order_transmission_available':False}),200
 
     @app.get('/api/local-bridge/ping')
-    def local_bridge_ping_v0172():
-        return jsonify({'ok':True,'version':'0.17.2','receiver':'READY',
+    def local_bridge_ping_v0173():
+        return jsonify({'ok':True,'version':'0.17.3',
+                        'receiver':'READY_RAW_POST_DIAGNOSTIC',
                         'order_transmission_available':False})
 
     @app.get('/api/broker/status')
