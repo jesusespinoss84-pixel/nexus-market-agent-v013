@@ -1,0 +1,1 @@
+Diagnostico seguro: longitud + SHA-256 truncado. Nunca devuelve el secreto. PAPER/solo lectura.

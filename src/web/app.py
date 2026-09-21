@@ -337,6 +337,29 @@ def create_app():
         return jsonify({'ok':True,'version':'0.17.4','receiver':'READY_BODY_TOKEN_TEST',
                         'order_transmission_available':False})
 
+    @app.route('/api/local-bridge/token-diagnostic',methods=['POST'])
+    def local_bridge_token_diagnostic_v0175():
+        import hashlib
+        raw=request.get_data(cache=True,as_text=False) or b''
+        try:
+            payload=json.loads(raw.decode('utf-8-sig'))
+        except Exception:
+            return jsonify({'ok':False,'version':'0.17.5','error':'INVALID_JSON','order_transmission_available':False}),422
+        received=str(payload.get('bridge_token') or '').strip()
+        expected=os.getenv('NEXUS_RENDER_BRIDGE_TOKEN','').strip()
+        def fp(v):
+            return hashlib.sha256(v.encode('utf-8')).hexdigest()[:12] if v else None
+        return jsonify({'ok':True,'version':'0.17.5','server_env_present':bool(expected),
+            'server_token_length':len(expected),'received_token_length':len(received),
+            'server_fingerprint':fp(expected),'received_fingerprint':fp(received),
+            'tokens_match':bool(expected and received and hmac.compare_digest(received,expected)),
+            'order_transmission_available':False}),200
+
+    @app.get('/api/local-bridge/ping-token-diagnostic')
+    def local_bridge_ping_token_diagnostic_v0175():
+        return jsonify({'ok':True,'version':'0.17.5','receiver':'READY_TOKEN_FINGERPRINT_DIAGNOSTIC',
+                        'order_transmission_available':False})
+
     @app.get('/api/broker/status')
     def broker_status():
         return jsonify(local_bridge.status(broker.status()))
