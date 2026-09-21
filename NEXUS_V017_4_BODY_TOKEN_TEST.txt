@@ -1,0 +1,1 @@
+V0.17.4: ruta diagnostica /api/local-bridge/report-body sin header personalizado. Token dentro de JSON HTTPS, removido antes de persistir. PAPER/solo lectura; ordenes bloqueadas.

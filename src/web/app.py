@@ -303,6 +303,40 @@ def create_app():
                         'receiver':'READY_RAW_POST_DIAGNOSTIC',
                         'order_transmission_available':False})
 
+    @app.route('/api/local-bridge/report-body',methods=['POST'])
+    def local_bridge_report_body_v0174():
+        # V0.17.4 diagnostico: sin header personalizado.
+        # El token viaja dentro del JSON HTTPS y se elimina antes de guardar.
+        raw=request.get_data(cache=True,as_text=False) or b''
+        diag={'ok':False,'version':'0.17.4','content_length':len(raw),
+              'order_transmission_available':False}
+        if not raw:
+            diag['error']='EMPTY_BODY'
+            return jsonify(diag),422
+        try:
+            payload=json.loads(raw.decode('utf-8-sig'))
+        except Exception as e:
+            diag['error']='INVALID_JSON'; diag['detail']=str(e)[:160]
+            return jsonify(diag),422
+        if not isinstance(payload,dict):
+            diag['error']='JSON_OBJECT_REQUIRED'
+            return jsonify(diag),422
+        token=str(payload.pop('bridge_token','') or '').strip()
+        ok,out=local_bridge.accept(token,payload)
+        if not ok:
+            code=401 if out=='UNAUTHORIZED' else 503 if out=='SERVER_TOKEN_NOT_CONFIGURED' else 422
+            diag['error']=out
+            return jsonify(diag),code
+        return jsonify({'ok':True,'version':'0.17.4','received_utc':out.get('received_utc'),
+                        'mode':'IBKR_TWS_PAPER_READ_ONLY',
+                        'account_number_exposed':False,
+                        'order_transmission_available':False}),200
+
+    @app.get('/api/local-bridge/ping-body')
+    def local_bridge_ping_body_v0174():
+        return jsonify({'ok':True,'version':'0.17.4','receiver':'READY_BODY_TOKEN_TEST',
+                        'order_transmission_available':False})
+
     @app.get('/api/broker/status')
     def broker_status():
         return jsonify(local_bridge.status(broker.status()))
