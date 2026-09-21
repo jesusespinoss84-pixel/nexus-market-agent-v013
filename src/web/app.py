@@ -424,6 +424,36 @@ def create_app():
             return jsonify({'ok':False,'error':out}),code
         return jsonify({'ok':True,'received_utc':out.get('received_utc'),'order_transmission_available':False})
 
+    @app.get('/api/broker/reconciliation')
+    def broker_reconciliation():
+        d=local_bridge.latest() or {}
+        ibkr=d.get('positions') if isinstance(d.get('positions'),list) else []
+        nexus=(portfolio.summary() or {}).get('positions') or []
+        def sy(x): return str(x.get('symbol') or x.get('ticker') or '').upper().strip()
+        def qt(x):
+            for k in ('shares','position','quantity','qty'):
+                try:
+                    if x.get(k) is not None: return float(x.get(k))
+                except Exception: pass
+            return 0.0
+        nm={sy(x):qt(x) for x in nexus if sy(x)}
+        im={sy(x):qt(x) for x in ibkr if sy(x)}
+        rows=[]
+        for symbol in sorted(set(nm)|set(im)):
+            nq=nm.get(symbol,0.0); iq=im.get(symbol,0.0); delta=iq-nq
+            rows.append({'symbol':symbol,'nexus_qty':nq,'ibkr_qty':iq,
+                         'difference_qty':delta,'match':abs(delta)<1e-6})
+        st=local_bridge.status({})
+        return jsonify({'ok':True,'version':'0.17.8',
+          'mode':'PAPER_READ_ONLY_RECONCILIATION',
+          'bridge_connected':bool(st.get('local_bridge_connected')),
+          'last_sync_utc':d.get('received_utc'),
+          'nexus_positions_count':len(nexus),'ibkr_positions_count':len(ibkr),
+          'matched':all(x['match'] for x in rows),
+          'differences_count':sum(1 for x in rows if not x['match']),
+          'rows':rows,'account_number_exposed':False,
+          'order_transmission_available':False})
+
     @app.get('/api/broker/accounts')
     def broker_accounts():
         return jsonify(broker.accounts())

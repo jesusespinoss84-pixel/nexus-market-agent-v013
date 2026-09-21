@@ -414,3 +414,18 @@ loadBrokerGateway();
 function brokerMoney(v,c='USD'){if(v===null||v===undefined||Number.isNaN(Number(v)))return '-';try{return new Intl.NumberFormat('es-MX',{style:'currency',currency:c,maximumFractionDigits:2}).format(Number(v))}catch(e){return Number(v).toFixed(2)+' '+c}}
 loadBrokerGateway=async function(){if(!$('brokerStatus'))return;try{const d=await fetch('/api/broker/status?_='+Date.now(),{cache:'no-store'}).then(r=>r.json());const on=!!d.local_bridge_connected,a=d.local_bridge_account||{},cur=a.currency||'USD',age=d.local_bridge_age_seconds,ag=age==null?'-':age<60?'hace '+age+' s':'hace '+Math.floor(age/60)+' min';$('brokerStatus').innerHTML='<b>IBKR PAPER: '+(on?'CONECTADO':'OFFLINE')+'</b><span>Bridge local: '+(on?'ONLINE':'OFFLINE')+' | V'+esc(d.local_bridge_version||'-')+'</span><span>TWS API: '+(on?'CONECTADA':'SIN REPORTE RECIENTE')+'</span><span>Modo: PAPER READ-ONLY</span><span>Ultimo reporte: '+(d.local_bridge_received_utc?dt(d.local_bridge_received_utc):'-')+' | '+ag+'</span><span>PC a Render: '+(on?'CONECTADO':'OFFLINE')+'</span><span>Transmision de ordenes reales: BLOQUEADA</span><small>'+esc(d.local_bridge_message||'')+'</small>';if($('brokerAccount'))$('brokerAccount').innerHTML='<div class="mini"><b>'+brokerMoney(a.net_liquidation,cur)+'</b><p>Net Liquidation PAPER</p></div><div class="mini"><b>'+brokerMoney(a.total_cash,cur)+'</b><p>Total Cash PAPER</p></div><div class="mini"><b>'+brokerMoney(a.available_funds,cur)+'</b><p>Available Funds PAPER</p></div><div class="mini"><b>'+Number(d.local_bridge_positions_count||0)+'</b><p>Posiciones IBKR Paper</p></div>'}catch(e){$('brokerStatus').innerHTML='<b>IBKR PAPER: OFFLINE</b><span>Transmision real: BLOQUEADA</span>'}};
 loadBrokerGateway();setInterval(loadBrokerGateway,15000);
+
+// V0.17.8 - CONCILIACION NEXUS PAPER vs IBKR PAPER
+async function loadBrokerReconciliation(){
+ if(!$('brokerReconciliation'))return;
+ try{
+  const d=await fetch('/api/broker/reconciliation?_='+Date.now(),{cache:'no-store'}).then(r=>r.json());
+  if(!d.bridge_connected){$('brokerReconciliation').innerHTML='<div class="emptyline">Bridge IBKR PAPER sin reporte reciente. Se actualizara automaticamente.</div>';return;}
+  const rows=d.rows||[];
+  let head='<div class="traderow"><span><b>Estado</b><small>Ultima sincronizacion '+(d.last_sync_utc?dt(d.last_sync_utc):'-')+'</small></span><span><b>'+(d.matched?'COINCIDE':'REVISAR')+'</b><small>'+Number(d.differences_count||0)+' diferencias</small></span></div>';
+  let body=rows.length?rows.map(x=>'<div class="traderow"><span><b>'+esc(x.symbol)+'</b><small>NEXUS '+Number(x.nexus_qty||0).toLocaleString('es-MX',{maximumFractionDigits:6})+' | IBKR '+Number(x.ibkr_qty||0).toLocaleString('es-MX',{maximumFractionDigits:6})+'</small></span><span><b>'+(x.match?'OK':'DIFERENCIA')+'</b><small>Delta '+Number(x.difference_qty||0).toLocaleString('es-MX',{maximumFractionDigits:6})+'</small></span></div>').join(''):'<div class="emptyline">Sin posiciones abiertas en ninguno de los dos PAPER.</div>';
+  $('brokerReconciliation').innerHTML=head+body;
+ }catch(e){$('brokerReconciliation').innerHTML='<div class="emptyline">No se pudo consultar la conciliacion.</div>';}
+}
+loadBrokerReconciliation();
+setInterval(loadBrokerReconciliation,15000);
