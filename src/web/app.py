@@ -233,6 +233,13 @@ def create_app():
         limit=max(1,min(int(request.args.get('limit',50)),200))
         return jsonify(list(reversed(autonomy.alerts(limit))))
 
+    @app.get('/api/test-campaign/status')
+    def test_campaign_status():
+        c=s.get('paper_test_campaign',{}); ps=portfolio.summary()
+        opens=[x for x in ps.get('positions',[]) if x.get('source')=='TEST_CAMPAIGN_PAPER']
+        closed=[x for x in ps.get('closed',[]) if x.get('source')=='TEST_CAMPAIGN_PAPER']
+        return jsonify({'version':'0.18.0','enabled':bool(c.get('enabled',False)),'paper_only':True,'purpose':'PLUMBING_TEST_NOT_STRATEGY_VALIDATION','open_test_positions':len(opens),'closed_test_positions':len(closed),'max_open_test_positions':int(c.get('max_open_test_positions',2)),'max_hold_minutes':int(c.get('max_hold_minutes',60)),'real_execution':False,'note':c.get('note')})
+
     @app.get('/api/autonomy/status')
     def autonomy_status():
         c=s.get('autonomous_agent',{})

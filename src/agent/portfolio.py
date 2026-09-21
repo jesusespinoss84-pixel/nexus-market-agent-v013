@@ -117,6 +117,38 @@ class PaperPortfolio:
             self._event('BUY',p)
             return True
 
+    def maybe_open_test(self,row,fx):
+        # V0.18.0: SOLO PAPER de prueba tecnica; no es evidencia de estrategia.
+        tc=self.s.get('paper_test_campaign',{})
+        if not tc.get('enabled',False) or not tc.get('paper_only',True) or not row.get('test_campaign_candidate'): return False
+        cfg=self.s['paper_portfolio']
+        with self._lock:
+            test_open=sum(1 for p in self.data['positions'] if p.get('source')=='TEST_CAMPAIGN_PAPER')
+            if test_open>=int(tc.get('max_open_test_positions',2)): return False
+            if len(self.data['positions'])>=int(cfg.get('max_open_positions',4)): return False
+            if any(p.get('symbol')==row.get('symbol') for p in self.data['positions']): return False
+            px_native=float(row.get('price') or 0)
+            px_mxn=px_native if row.get('currency')=='MXN' else px_native*(fx or 1)
+            if px_mxn<=0:return False
+            budget=min(float(tc.get('budget_mxn_per_trade',1500)),self.data['cash_mxn'])
+            sh=self._paper_shares(row,px_mxn,budget)
+            if sh<=0:return False
+            slip=float(cfg.get('slippage_pct',0.05))/100
+            entry=px_mxn*(1+slip); cost=entry*sh
+            if cost>self.data['cash_mxn']:return False
+            sp=float(tc.get('stop_loss_pct',1.0))/100; tp=float(tc.get('take_profit_pct',2.0))/100
+            now=datetime.now(timezone.utc).isoformat()
+            pos={'symbol':row['symbol'],'name':row['name'],'currency':row['currency'],'shares':sh,
+                 'entry_native':round(px_native,6),'entry_price_mxn':round(entry,2),'last_price_mxn':round(px_mxn,2),
+                 'stop_mxn':round(entry*(1-sp),2),'target_mxn':round(entry*(1+tp),2),
+                 'market_value_mxn':round(px_mxn*sh,2),'unrealized_mxn':round((px_mxn-entry)*sh,2),
+                 'opened_utc':now,'strategy_id':'PLUMBING_TEST_V0180',
+                 'validation_score':row.get('validation_score'),'composite_score':row.get('composite_score'),
+                 'technical_score':row.get('score'),'source':'TEST_CAMPAIGN_PAPER',
+                 'test_only':True,'not_strategy_evidence':True}
+            self.data['cash_mxn']-=cost; self.data['positions'].append(pos); self.data['last_update_utc']=now
+            self.save(); self._event('BUY_TEST',pos); self.snapshot_curve(); return True
+
     def _mark_positions(self,price_map,fx):
         still=[];now=datetime.now(timezone.utc).isoformat()
         cfg=self.s['paper_portfolio']
@@ -133,6 +165,12 @@ class PaperPortfolio:
             p['market_value_mxn']=round(px*p['shares'],2)
             p['unrealized_mxn']=round((px-p['entry_price_mxn'])*p['shares'],2)
             reason='STOP' if px<=p['stop_mxn'] else 'TARGET' if px>=p['target_mxn'] else None
+            if not reason and p.get('source')=='TEST_CAMPAIGN_PAPER':
+                try:
+                    opened=datetime.fromisoformat(str(p.get('opened_utc')).replace('Z','+00:00'))
+                    max_hold=int(self.s.get('paper_test_campaign',{}).get('max_hold_minutes',60))
+                    if datetime.now(timezone.utc)-opened >= timedelta(minutes=max_hold): reason='TEST_TIMEOUT'
+                except Exception: pass
             if not reason:
                 still.append(p);continue
 

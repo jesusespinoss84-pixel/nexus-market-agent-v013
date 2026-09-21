@@ -98,6 +98,8 @@ class NexusAgent:
             x['learning_adjustment_points']=learn_adj
             x['ai_strength_score']=round(max(0,min(100,base_ai+learn_adj)),1)
             x=self.auto.enrich(x,fx,self.port.summary().get('cash_mxn',self.s['paper_portfolio']['starting_cash_mxn']))
+            tc=self.s.get('paper_test_campaign',{})
+            x['test_campaign_candidate']=bool(tc.get('enabled',False) and tc.get('paper_only',True) and not x.get('validated_match') and x.get('direction')=='BUY' and float(x.get('score',0))>=float(tc.get('min_technical_score',70)) and float(x.get('composite_score',0))>=float(tc.get('min_composite_score',50)) and float(x.get('vulnerability_score',100))<=float(tc.get('max_vulnerability_score',75)) and not x.get('autonomous_pause'))
             snap.append(x)
         snap.sort(key=lambda x:(0 if x['validated_match'] else 1,-x['composite_score'],x['vulnerability_score']))
         transition_alerts=self.auto.process_transitions(snap)
@@ -112,9 +114,10 @@ class NexusAgent:
                 if x.get('ai_action')=='PAPER BUY':x['ai_action']='ESPERAR RIESGO'
         for x in snap:
             if x.get('autonomous_paper_allowed') and self.s.get('autonomous_agent',{}).get('auto_open',True):self.port.maybe_open(x,fx)
+            if x.get('test_campaign_candidate') and not x.get('risk_governor_block'): self.port.maybe_open_test(x,fx)
             if x.get('autonomous_pause') and self.s.get('autonomous_agent',{}).get('auto_close_on_pause',True) and any(p.get('symbol')==x.get('symbol') for p in self.port.summary().get('positions',[])):
                 self.port.manual_close(x['symbol'],x['price'],fx,'AGENT_PAUSE')
         self.port.update_and_close(snap,fx)
-        state={'version':self.s['app']['version'],'mode':self.s['app']['mode'],'last_scan_utc':now,'assets_scanned':len(snap),'cheap_mexican_count':sum(1 for x in snap if x['cheap_mexican_under_50']),'validated_matches':sum(1 for x in snap if x['validated_match']),'validated_assets':sum(1 for x in snap if x['validation_score']>0),'usdmxn':round(fx,4) if fx else None,'errors':errors[-12:],'autonomous_agent':bool(self.s.get('autonomous_agent',{}).get('enabled',True)),'new_alerts':len(transition_alerts)}
+        state={'version':self.s['app']['version'],'mode':self.s['app']['mode'],'last_scan_utc':now,'assets_scanned':len(snap),'cheap_mexican_count':sum(1 for x in snap if x['cheap_mexican_under_50']),'validated_matches':sum(1 for x in snap if x['validated_match']),'validated_assets':sum(1 for x in snap if x['validation_score']>0),'usdmxn':round(fx,4) if fx else None,'errors':errors[-12:],'autonomous_agent':bool(self.s.get('autonomous_agent',{}).get('enabled',True)),'new_alerts':len(transition_alerts),'paper_test_campaign':bool(self.s.get('paper_test_campaign',{}).get('enabled',False)),'test_candidates':sum(1 for x in snap if x.get('test_campaign_candidate'))}
         (self.root/self.s['storage']['state']).write_text(json.dumps(state,indent=2,ensure_ascii=False),encoding='utf-8');(self.root/self.s['storage']['snapshot']).write_text(json.dumps(snap,indent=2,ensure_ascii=False),encoding='utf-8');(self.root/self.s['storage']['benchmarks']).write_text(json.dumps(bench,indent=2,ensure_ascii=False),encoding='utf-8')
         return state,snap
