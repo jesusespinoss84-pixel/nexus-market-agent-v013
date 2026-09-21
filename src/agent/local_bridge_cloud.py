@@ -40,5 +40,18 @@ class LocalBridgeCloudState:
         fresh=age is not None and age<=90
         connected=bool(d.get("connected")) and fresh
         account=d.get("account") if isinstance(d.get("account"),dict) else {}
+        # V0.17.9: normaliza nombres recibidos desde TWS/Bridge.
+        def pick(*keys):
+            for k in keys:
+                if k in account and account.get(k) not in (None, ""): return account.get(k)
+            return None
+        normalized_account=dict(account)
+        normalized_account["net_liquidation"]=pick("net_liquidation","NetLiquidation","netLiquidation")
+        normalized_account["total_cash"]=pick("total_cash","TotalCashValue","totalCash")
+        normalized_account["available_funds"]=pick("available_funds","AvailableFunds","availableFunds")
+        normalized_account["buying_power"]=pick("buying_power","BuyingPower","buyingPower")
+        normalized_account["excess_liquidity"]=pick("excess_liquidity","ExcessLiquidity","excessLiquidity")
+        normalized_account["currency"]=pick("currency","Currency") or "USD"
+        account=normalized_account
         positions=d.get("positions") if isinstance(d.get("positions"),list) else []
         out=dict(legacy or {}); out.update({"provider":"IBKR","enabled":True,"mode":"TWS_PAPER_READ_ONLY","connected":connected,"authenticated":connected,"account_configured":True,"local_bridge":True,"local_bridge_connected":connected,"local_bridge_fresh":fresh,"local_bridge_age_seconds":age,"local_bridge_received_utc":d.get("received_utc"),"local_bridge_version":d.get("bridge_version"),"local_bridge_account":account,"local_bridge_positions":positions,"local_bridge_positions_count":len(positions),"local_bridge_message":("TWS Paper conectado mediante NEXUS Local Broker Bridge." if connected else "Bridge sin reporte reciente; verifica TWS, Bridge V3.5 o Internet."),"live_order_transmission":False,"manual_confirmation_required":True,"account_number_exposed":False}); return out

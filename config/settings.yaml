@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.17.8
+  version: 0.17.9
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -9,7 +9,7 @@ app:
   port_search_end: 5199
 agent:
   enabled: true
-  scan_minutes: 5
+  scan_minutes: 3
   market_period: 5d
   market_interval: 5m
   history_period: 1y
@@ -30,7 +30,7 @@ paper_portfolio:
   risk_per_trade_pct: 1.0
   only_validated_strategies: true
   live_enabled: true
-  live_update_minutes: 2
+  live_update_minutes: 1
   slippage_pct: 0.05
   commission_pct_round_trip: 0.02
   max_open_positions: 4
