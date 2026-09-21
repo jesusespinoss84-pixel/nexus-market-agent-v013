@@ -31,13 +31,14 @@ class LocalBridgeCloudState:
     def status(self,legacy=None):
         d=self.latest()
         if not d:
-            out=dict(legacy or {});out.update({"local_bridge":False,"local_bridge_connected":False,
-            "local_bridge_message":"Esperando primer reporte seguro desde la PC.","live_order_transmission":False})
-            return out
-        out=dict(legacy or {});out.update({"provider":"IBKR","enabled":True,"mode":"TWS_PAPER_READ_ONLY",
-        "connected":bool(d.get("connected")),"authenticated":bool(d.get("connected")),"account_configured":True,
-        "local_bridge":True,"local_bridge_connected":bool(d.get("connected")),
-        "local_bridge_received_utc":d.get("received_utc"),
-        "local_bridge_message":"TWS Paper conectado mediante NEXUS Local Broker Bridge.",
-        "live_order_transmission":False,"manual_confirmation_required":True,"account_number_exposed":False})
-        return out
+            out=dict(legacy or {}); out.update({"local_bridge":False,"local_bridge_connected":False,"local_bridge_fresh":False,"local_bridge_age_seconds":None,"local_bridge_message":"Esperando primer reporte seguro desde la PC.","live_order_transmission":False}); return out
+        age=None
+        try:
+            received=datetime.fromisoformat(str(d.get("received_utc") or "").replace("Z","+00:00"))
+            age=max(0,int((datetime.now(timezone.utc)-received).total_seconds()))
+        except Exception: pass
+        fresh=age is not None and age<=90
+        connected=bool(d.get("connected")) and fresh
+        account=d.get("account") if isinstance(d.get("account"),dict) else {}
+        positions=d.get("positions") if isinstance(d.get("positions"),list) else []
+        out=dict(legacy or {}); out.update({"provider":"IBKR","enabled":True,"mode":"TWS_PAPER_READ_ONLY","connected":connected,"authenticated":connected,"account_configured":True,"local_bridge":True,"local_bridge_connected":connected,"local_bridge_fresh":fresh,"local_bridge_age_seconds":age,"local_bridge_received_utc":d.get("received_utc"),"local_bridge_version":d.get("bridge_version"),"local_bridge_account":account,"local_bridge_positions":positions,"local_bridge_positions_count":len(positions),"local_bridge_message":("TWS Paper conectado mediante NEXUS Local Broker Bridge." if connected else "Bridge sin reporte reciente; verifica TWS, Bridge V3.5 o Internet."),"live_order_transmission":False,"manual_confirmation_required":True,"account_number_exposed":False}); return out

@@ -408,3 +408,9 @@ loadBrokerGateway = async function(){
  }catch(e){$('brokerStatus').textContent='No se pudo consultar el Broker Gateway.'}
 };
 loadBrokerGateway();
+
+
+// V0.17.7 FINAL IBKR PAPER BRIDGE
+function brokerMoney(v,c='USD'){if(v===null||v===undefined||Number.isNaN(Number(v)))return '-';try{return new Intl.NumberFormat('es-MX',{style:'currency',currency:c,maximumFractionDigits:2}).format(Number(v))}catch(e){return Number(v).toFixed(2)+' '+c}}
+loadBrokerGateway=async function(){if(!$('brokerStatus'))return;try{const d=await fetch('/api/broker/status?_='+Date.now(),{cache:'no-store'}).then(r=>r.json());const on=!!d.local_bridge_connected,a=d.local_bridge_account||{},cur=a.currency||'USD',age=d.local_bridge_age_seconds,ag=age==null?'-':age<60?'hace '+age+' s':'hace '+Math.floor(age/60)+' min';$('brokerStatus').innerHTML='<b>IBKR PAPER: '+(on?'CONECTADO':'OFFLINE')+'</b><span>Bridge local: '+(on?'ONLINE':'OFFLINE')+' | V'+esc(d.local_bridge_version||'-')+'</span><span>TWS API: '+(on?'CONECTADA':'SIN REPORTE RECIENTE')+'</span><span>Modo: PAPER READ-ONLY</span><span>Ultimo reporte: '+(d.local_bridge_received_utc?dt(d.local_bridge_received_utc):'-')+' | '+ag+'</span><span>PC a Render: '+(on?'CONECTADO':'OFFLINE')+'</span><span>Transmision de ordenes reales: BLOQUEADA</span><small>'+esc(d.local_bridge_message||'')+'</small>';if($('brokerAccount'))$('brokerAccount').innerHTML='<div class="mini"><b>'+brokerMoney(a.net_liquidation,cur)+'</b><p>Net Liquidation PAPER</p></div><div class="mini"><b>'+brokerMoney(a.total_cash,cur)+'</b><p>Total Cash PAPER</p></div><div class="mini"><b>'+brokerMoney(a.available_funds,cur)+'</b><p>Available Funds PAPER</p></div><div class="mini"><b>'+Number(d.local_bridge_positions_count||0)+'</b><p>Posiciones IBKR Paper</p></div>'}catch(e){$('brokerStatus').innerHTML='<b>IBKR PAPER: OFFLINE</b><span>Transmision real: BLOQUEADA</span>'}};
+loadBrokerGateway();setInterval(loadBrokerGateway,15000);
