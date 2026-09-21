@@ -1,0 +1,1 @@
+V0.17.6: diagnostico de token sin hmac, protegido contra excepciones. No imprime secretos. PAPER/solo lectura; transmision de ordenes no disponible.

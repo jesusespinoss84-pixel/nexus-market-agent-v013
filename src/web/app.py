@@ -360,6 +360,51 @@ def create_app():
         return jsonify({'ok':True,'version':'0.17.5','receiver':'READY_TOKEN_FINGERPRINT_DIAGNOSTIC',
                         'order_transmission_available':False})
 
+    @app.route('/api/local-bridge/token-diagnostic-v2', methods=['POST'])
+    def local_bridge_token_diagnostic_v0176():
+        # Exception-safe diagnostic. Never returns the token.
+        try:
+            import hashlib
+            raw = request.get_data(cache=True, as_text=False) or b''
+            payload = json.loads(raw.decode('utf-8-sig')) if raw else {}
+            received = str(payload.get('bridge_token') or '').strip()
+            expected = str(os.getenv('NEXUS_RENDER_BRIDGE_TOKEN', '') or '').strip()
+
+            def fp(value):
+                if not value:
+                    return None
+                return hashlib.sha256(value.encode('utf-8')).hexdigest()[:12]
+
+            return jsonify({
+                'ok': True,
+                'version': '0.17.6',
+                'server_env_present': bool(expected),
+                'server_token_length': len(expected),
+                'received_token_length': len(received),
+                'server_fingerprint': fp(expected),
+                'received_fingerprint': fp(received),
+                'tokens_match': bool(expected and received and received == expected),
+                'order_transmission_available': False
+            }), 200
+        except Exception as exc:
+            return jsonify({
+                'ok': False,
+                'version': '0.17.6',
+                'error': 'TOKEN_DIAGNOSTIC_EXCEPTION',
+                'exception_type': type(exc).__name__,
+                'detail': str(exc)[:180],
+                'order_transmission_available': False
+            }), 200
+
+    @app.get('/api/local-bridge/ping-token-diagnostic-v2')
+    def local_bridge_ping_token_diagnostic_v0176():
+        return jsonify({
+            'ok': True,
+            'version': '0.17.6',
+            'receiver': 'READY_TOKEN_DIAGNOSTIC_V2',
+            'order_transmission_available': False
+        })
+
     @app.get('/api/broker/status')
     def broker_status():
         return jsonify(local_bridge.status(broker.status()))
