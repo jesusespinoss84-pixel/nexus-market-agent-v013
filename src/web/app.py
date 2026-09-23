@@ -1,5 +1,6 @@
 from flask import Flask,jsonify,render_template,request
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timezone, timedelta
 import json,atexit,math,threading,os,urllib.request,urllib.parse
 from src.config.loader import load_settings,project_root
@@ -11,6 +12,7 @@ from src.agent.risk_governor import RiskGovernor
 from src.agent.broker_gateway import IBKRBrokerGateway
 from src.agent.local_bridge_cloud import LocalBridgeCloudState
 from src.agent.validator import SymbolValidator
+from src.agent.alert_supervisor import AlertSupervisor
 from src.data.yfinance_provider import YFinanceProvider
 
 scheduler=None
@@ -33,17 +35,100 @@ def create_app():
     riskgov=RiskGovernor(s)
     broker=IBKRBrokerGateway(s,root)
     local_bridge=LocalBridgeCloudState(root)
+    alert_supervisor=AlertSupervisor(root,s)
 
     def send_telegram(text):
         token=os.getenv('NEXUS_TELEGRAM_BOT_TOKEN','').strip()
         chat=os.getenv('NEXUS_TELEGRAM_CHAT_ID','').strip()
         if not token or not chat:return {'ok':False,'configured':False,'error':'TELEGRAM_NOT_CONFIGURED'}
         try:
-            data=urllib.parse.urlencode({'chat_id':chat,'text':text}).encode()
+            data=urllib.parse.urlencode({'chat_id':chat,'text':str(text)[:3900],'disable_web_page_preview':'true'}).encode()
             req=urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',data=data,method='POST')
             with urllib.request.urlopen(req,timeout=12) as r:
                 return {'ok':200<=r.status<300,'configured':True,'status':r.status}
         except Exception as e:return {'ok':False,'configured':True,'error':str(e)}
+
+    def telegram_enabled():
+        return bool(s.get('alerts',{}).get('telegram_enabled',False))
+
+    def money(v):
+        try:return f"${float(v):,.2f}"
+        except:return "—"
+
+    def opportunity_message(al):
+        rp=al.get('risk_plan') or {}
+        return (
+            f"🔎 NEXUS PAPER · OPORTUNIDAD\n"
+            f"{al.get('symbol','—')} · {al.get('action','—')}\n"
+            f"{al.get('body','')}\n"
+            f"Entrada ref. MXN: {money(rp.get('entry_mxn'))}\n"
+            f"Stop PAPER: {money(rp.get('stop_mxn'))} · Objetivo PAPER: {money(rp.get('target_mxn'))}\n"
+            f"Cantidad simulada sugerida: {rp.get('suggested_shares','—')}\n"
+            f"Métrica interna de investigación; no es probabilidad ni recomendación de inversión."
+        )
+
+    def trade_event_message(ev):
+        kind=str(ev.get('type','')).upper()
+        symbol=ev.get('symbol','—')
+        if kind in ('BUY','BUY_TEST'):
+            return (
+                f"🟢 NEXUS PAPER · ENTRADA SIMULADA\n"
+                f"{symbol} · {ev.get('name','')}\n"
+                f"Cantidad: {ev.get('shares','—')}\n"
+                f"Entrada PAPER MXN: {money(ev.get('entry_price_mxn'))}\n"
+                f"Stop: {money(ev.get('stop_mxn'))} · Objetivo: {money(ev.get('target_mxn'))}\n"
+                f"Origen: {ev.get('source','LIVE_PAPER')}"
+            )
+        if kind.startswith('SELL'):
+            return (
+                f"🔴 NEXUS PAPER · SALIDA SIMULADA\n"
+                f"{symbol} · motivo: {ev.get('exit_reason','—')}\n"
+                f"Salida PAPER MXN: {money(ev.get('exit_price_mxn'))}\n"
+                f"P/L simulado: {money(ev.get('pnl_mxn'))} · R: {ev.get('r_multiple','—')}"
+            )
+        return f"ℹ️ NEXUS PAPER · {kind} · {symbol}"
+
+    def dispatch_trade_events():
+        if not telegram_enabled(): return
+        for ev in alert_supervisor.new_trade_events(portfolio.events()):
+            if s.get('alerts',{}).get('alert_on_trade_event',True):
+                send_telegram(trade_event_message(ev))
+
+    def health_alert_job():
+        cfg=s.get('alerts',{})
+        # Bridge/TWS heartbeat.
+        bst=local_bridge.status({})
+        bridge_ok=bool(bst.get('local_bridge_connected'))
+        old,new,changed=alert_supervisor.status_transition('bridge_online',bridge_ok)
+        if telegram_enabled() and cfg.get('alert_on_bridge_status_change',True) and changed and old is not None:
+            if bridge_ok:
+                send_telegram("✅ NEXUS SISTEMA · Bridge/TWS PAPER volvió a estar CONECTADO.")
+            else:
+                age=bst.get('local_bridge_age_seconds')
+                send_telegram(f"⚠️ NEXUS SISTEMA · Bridge/TWS PAPER SIN REPORTE RECIENTE. Edad del último reporte: {age if age is not None else '—'} s. Revisa PC, TWS y bridge.")
+        # Scanner heartbeat/error state.
+        rt=readj(root/s['storage'].get('runtime','storage/runtime.json'),{})
+        scan_ok=rt.get('last_scan_ok')
+        if scan_ok is not None:
+            old,new,changed=alert_supervisor.status_transition('scan_ok',bool(scan_ok))
+            if telegram_enabled() and cfg.get('alert_on_scan_status_change',True) and changed and old is not None:
+                send_telegram("✅ NEXUS SISTEMA · Escáner recuperado y trabajando." if scan_ok else
+                              f"⚠️ NEXUS SISTEMA · Error en escáner: {rt.get('last_scan_error','sin detalle')}")
+        dispatch_trade_events()
+
+    def daily_summary_job():
+        if not telegram_enabled() or not s.get('alerts',{}).get('daily_summary_enabled',True): return
+        ps=portfolio.summary()
+        st=readj(root/s['storage']['state'],{})
+        bst=local_bridge.status({})
+        send_telegram(
+            "📊 NEXUS PAPER · RESUMEN DIARIO\n"
+            f"Escaneadas: {st.get('assets_scanned','—')} · setups validados: {st.get('validated_matches','—')}\n"
+            f"Posiciones PAPER abiertas: {len(ps.get('positions',[]))} · cerradas acumuladas: {len(ps.get('closed',[]))}\n"
+            f"Equity PAPER: {money(ps.get('equity_mxn'))} MXN · P/L total simulado: {money(ps.get('total_pnl_mxn'))} MXN\n"
+            f"Bridge/TWS PAPER: {'CONECTADO' if bst.get('local_bridge_connected') else 'OFFLINE'}\n"
+            "Resultados PAPER; no implican rendimiento futuro."
+        )
 
     def write_runtime(**kw):
         p=root/s['storage'].get('runtime','storage/runtime.json')
@@ -59,8 +144,11 @@ def create_app():
             before=len(autonomy.alerts(1000))
             st,_=agent.scan_once()
             fresh=autonomy.alerts(1000)[before:]
-            if s.get('alerts',{}).get('telegram_enabled',False):
-                for a in fresh[-10:]: send_telegram(f"NEXUS {a.get('title')} · {a.get('body')}")
+            if telegram_enabled() and s.get('alerts',{}).get('alert_on_opportunity',True):
+                for al in fresh[-10:]:
+                    if al.get('action') in ('PAPER BUY','ESPERAR SETUP','ESTUDIAR','PAUSAR') or al.get('setup_validated'):
+                        send_telegram(opportunity_message(al))
+            dispatch_trade_events()
             write_runtime(scan_running=False,last_scan_finished_utc=datetime.now(timezone.utc).isoformat(),last_scan_ok=True,last_scan_error=None,last_alerts_generated=len(fresh))
             return st
         except Exception as e:
@@ -75,6 +163,7 @@ def create_app():
         try:
             fx=provider.get_usdmxn()
             portfolio.live_update(provider,s['assets'],fx)
+            dispatch_trade_events()
             write_runtime(last_live_update_utc=datetime.now(timezone.utc).isoformat(),last_live_ok=True,last_live_error=None)
         except Exception as e:
             print('LIVE PAPER ERROR',e,flush=True)
@@ -87,6 +176,13 @@ def create_app():
                           next_run_time=datetime.now(timezone.utc)+timedelta(seconds=2))
         scheduler.add_job(live_job,'interval',minutes=int(s['paper_portfolio'].get('live_update_minutes',2)),id='livepaper',
                           max_instances=1,coalesce=True,next_run_time=datetime.now(timezone.utc)+timedelta(seconds=20))
+        scheduler.add_job(health_alert_job,'interval',minutes=1,id='healthalerts',max_instances=1,coalesce=True,
+                          next_run_time=datetime.now(timezone.utc)+timedelta(seconds=35))
+        if s.get('alerts',{}).get('daily_summary_enabled',True):
+            scheduler.add_job(daily_summary_job,
+                CronTrigger(hour=int(s.get('alerts',{}).get('daily_summary_hour_local',18)),
+                            minute=0,timezone=s.get('alerts',{}).get('daily_summary_timezone','America/Matamoros')),
+                id='daily_summary',max_instances=1,coalesce=True)
         scheduler.start()
         atexit.register(lambda:scheduler.shutdown(wait=False) if scheduler and scheduler.running else None)
 
@@ -506,9 +602,21 @@ def create_app():
             'telegram_chat_id_env':'NEXUS_TELEGRAM_CHAT_ID'
         })
 
+    @app.get('/api/alerts/supervision')
+    def alerts_supervision():
+        bst=local_bridge.status({})
+        return jsonify({
+            'ok':True,'version':'0.19.0',
+            'telegram_configured':bool(os.getenv('NEXUS_TELEGRAM_BOT_TOKEN') and os.getenv('NEXUS_TELEGRAM_CHAT_ID')),
+            'bridge_online':bool(bst.get('local_bridge_connected')),
+            'bridge_age_seconds':bst.get('local_bridge_age_seconds'),
+            'state':alert_supervisor.state(),
+            'real_execution':False
+        })
+
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.17 · Alerta de prueba correcta.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.19 · Telegram conectado correctamente. PAPER activo; trading real bloqueado.'))
 
     @app.get('/api/platform')
     def platform():

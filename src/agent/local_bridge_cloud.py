@@ -14,7 +14,6 @@ class LocalBridgeCloudState:
         if not isinstance(payload,dict):return False,"INVALID_PAYLOAD"
         safe={"received_utc":datetime.now(timezone.utc).isoformat(),
               "bridge_version":str(payload.get("bridge_version") or ""),
-              # V0.18.1: V3.7.1 reports tws_connected. Older bridges used connected.
               "connected":bool(payload.get("connected", payload.get("tws_connected", False))),
               "mode":"IBKR_TWS_PAPER_READ_ONLY",
               "order_transmission_available":False,"account_number_exposed":False,
@@ -41,6 +40,7 @@ class LocalBridgeCloudState:
         fresh=age is not None and age<=90
         connected=bool(d.get("connected")) and fresh
         account=d.get("account") if isinstance(d.get("account"),dict) else {}
+        # V0.17.9: normaliza nombres recibidos desde TWS/Bridge.
         def pick(*keys):
             for k in keys:
                 if k in account and account.get(k) not in (None, ""): return account.get(k)
@@ -54,4 +54,4 @@ class LocalBridgeCloudState:
         normalized_account["currency"]=pick("currency","Currency") or "USD"
         account=normalized_account
         positions=d.get("positions") if isinstance(d.get("positions"),list) else []
-        out=dict(legacy or {}); out.update({"provider":"IBKR","enabled":True,"mode":"TWS_PAPER_READ_ONLY","connected":connected,"authenticated":connected,"account_configured":True,"local_bridge":True,"local_bridge_connected":connected,"local_bridge_fresh":fresh,"local_bridge_age_seconds":age,"local_bridge_received_utc":d.get("received_utc"),"local_bridge_version":d.get("bridge_version"),"local_bridge_account":account,"local_bridge_positions":positions,"local_bridge_positions_count":len(positions),"local_bridge_message":("TWS Paper conectado mediante NEXUS Local Broker Bridge." if connected else "Bridge sin reporte reciente; verifica TWS, Bridge o Internet."),"live_order_transmission":False,"manual_confirmation_required":True,"account_number_exposed":False}); return out
+        out=dict(legacy or {}); out.update({"provider":"IBKR","enabled":True,"mode":"TWS_PAPER_READ_ONLY","connected":connected,"authenticated":connected,"account_configured":True,"local_bridge":True,"local_bridge_connected":connected,"local_bridge_fresh":fresh,"local_bridge_age_seconds":age,"local_bridge_received_utc":d.get("received_utc"),"local_bridge_version":d.get("bridge_version"),"local_bridge_account":account,"local_bridge_positions":positions,"local_bridge_positions_count":len(positions),"local_bridge_message":("TWS Paper conectado mediante NEXUS Local Broker Bridge." if connected else "Bridge sin reporte reciente; verifica TWS, Bridge V3.5 o Internet."),"live_order_transmission":False,"manual_confirmation_required":True,"account_number_exposed":False}); return out

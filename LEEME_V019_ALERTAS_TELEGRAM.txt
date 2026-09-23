@@ -1,0 +1,46 @@
+NEXUS MARKET AGENT V0.19.0 — PAPER + ALERTAS TELEGRAM
+
+OBJETIVO
+- Mantener NEXUS analizando continuamente.
+- Alertar al teléfono sobre oportunidades PAPER, entradas/salidas simuladas,
+  fallas/recuperación del escáner, estado Bridge/TWS y resumen diario.
+- Mantener trading REAL bloqueado.
+
+SEGURIDAD
+- real_trading.enabled = false
+- broker_gateway sigue sin transmisión real.
+- Las alertas y operaciones descritas son PAPER.
+- No guardar BOT TOKEN, CHAT ID ni NEXUS_RENDER_BRIDGE_TOKEN en GitHub.
+
+RENDER — VARIABLES PRIVADAS
+Agregar en Environment:
+  NEXUS_TELEGRAM_BOT_TOKEN = <token del bot>
+  NEXUS_TELEGRAM_CHAT_ID   = <chat id privado>
+
+Ya debe existir:
+  NEXUS_RENDER_BRIDGE_TOKEN = <token privado del bridge>
+
+NO PEGAR ESTOS VALORES EN ARCHIVOS DEL REPOSITORIO.
+
+ALERTAS V0.19
+1. OPORTUNIDAD: cambio relevante / setup PAPER.
+2. ENTRADA PAPER: posición simulada abierta.
+3. SALIDA PAPER: cierre, motivo y P/L simulado.
+4. SISTEMA: Bridge/TWS offline y recuperación.
+5. SISTEMA: error/recuperación del escáner.
+6. RESUMEN DIARIO: 18:00 America/Matamoros.
+
+ENDPOINTS
+- GET  /api/alerts/status
+- POST /api/alerts/test
+- GET  /api/alerts/supervision
+- GET  /api/broker/status
+
+DESPLIEGUE
+Subir el CONTENIDO de esta carpeta a la raíz del repo GitHub.
+Después en Render: Manual Deploy -> Deploy latest commit.
+Tras Deploy succeeded | Live, usar Ctrl+F5.
+
+IMPORTANTE
+V0.19 usa el PAPER interno de NEXUS y la supervisión del bridge IBKR Paper.
+No convierte las métricas internas en probabilidades ni habilita trading real.

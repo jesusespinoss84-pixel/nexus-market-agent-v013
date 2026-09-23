@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.18.0
+  version: "0.19.0"
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -427,12 +427,20 @@ autonomous_agent:
 
 alerts:
   browser_enabled: true
-  telegram_enabled: false
+  telegram_enabled: true
   telegram_bot_token_env: NEXUS_TELEGRAM_BOT_TOKEN
   telegram_chat_id_env: NEXUS_TELEGRAM_CHAT_ID
   alert_on_paper_candidate: true
   alert_on_pause: true
   alert_on_trade_event: true
+  alert_on_opportunity: true
+  alert_on_bridge_status_change: true
+  alert_on_scan_status_change: true
+  bridge_stale_seconds: 120
+  daily_summary_enabled: true
+  daily_summary_hour_local: 18
+  daily_summary_timezone: America/Matamoros
+  note: "Alertas PAPER/operativas. No son recomendaciones de inversión ni probabilidades de ganancia."
 
 real_trading:
   enabled: false
