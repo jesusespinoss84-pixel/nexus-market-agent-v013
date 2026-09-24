@@ -1,0 +1,29 @@
+NEXUS MARKET AGENT V0.20.0 — MULTIHORIZON EXPLANATION ENGINE
+
+Objetivo
+- Mejorar la calidad y explicabilidad de las decisiones PAPER.
+- Mantener trading real bloqueado.
+- No convertir scores internos en probabilidades ni garantías.
+
+Novedades
+1. Análisis multihorizonte: 1D, 1 semana, 1 mes, 3 meses, 6 meses y 1 año.
+2. Consenso de tendencia y estructura de precio vs SMA20/SMA50.
+3. Explicación de evidencia a favor y en contra: RSI, volumen relativo, fuerza relativa vs benchmark, contexto, vulnerabilidad y validación.
+4. Telegram inteligente: incluye horizonte, evidencia, riesgos y razón de ESPERAR/PAPER BUY/PAUSAR.
+5. Cada entrada PAPER guarda decision_snapshot con la evidencia disponible al momento de abrirla para auditoría posterior.
+6. TEST_CAMPAIGN_PAPER continúa deshabilitado.
+7. Trading real continúa deshabilitado.
+
+Despliegue
+- Subir el CONTENIDO de este ZIP a la raíz del repositorio GitHub actual.
+- Commit sugerido: NEXUS V0.20.0 - Multihorizon intelligence and explainable PAPER alerts
+- En Render: Manual Deploy > Deploy latest commit.
+- Conservar las variables NEXUS_TELEGRAM_BOT_TOKEN y NEXUS_TELEGRAM_CHAT_ID existentes; no poner secretos en el repositorio.
+
+Validación realizada
+- Python compileall: OK.
+- Configuración: app.version=0.20.0; real_trading.enabled=false; paper_test_campaign.enabled=false.
+- El entorno local de construcción no incluye Flask, por lo que no se levantó el servidor web aquí; Render instalará requirements.txt durante el build.
+
+Nota
+Los resultados PAPER y las métricas internas son investigación/simulación; no implican rendimiento futuro ni probabilidad de acierto.

@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: "0.19.1"
+  version: "0.20.0"
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -441,6 +441,10 @@ alerts:
   daily_summary_hour_local: 18
   daily_summary_timezone: America/Matamoros
   note: "Alertas PAPER/operativas. No son recomendaciones de inversión ni probabilidades de ganancia."
+  intelligent_explanations: true
+  opportunity_min_change_points: 3.0
+  opportunity_repeat_cooldown_minutes: 180
+  include_multihorizon: true
 
 real_trading:
   enabled: false

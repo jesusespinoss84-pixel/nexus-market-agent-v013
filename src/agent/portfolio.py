@@ -108,7 +108,8 @@ class PaperPortfolio:
                 'strategy_id':row.get('validated_strategy_id'),
                 'validation_score':row.get('validation_score'),
                 'composite_score':row.get('composite_score'),
-                'source':'LIVE_PAPER'
+                'source':'LIVE_PAPER',
+                'decision_snapshot':{'ai_action':row.get('ai_action'),'ai_strength_score':row.get('ai_strength_score'),'technical_score':row.get('score'),'validation_score':row.get('validation_score'),'composite_score':row.get('composite_score'),'vulnerability_score':row.get('vulnerability_score'),'market_context_score':row.get('market_context_score'),'multi_horizon':row.get('multi_horizon',{}),'analysis':row.get('decision_analysis',{})}
             }
             self.data['cash_mxn']-=cost
             self.data['positions'].append(p)

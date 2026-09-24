@@ -12,6 +12,7 @@ from src.agent.market_intelligence import MarketIntelligence
 from src.agent.autonomy import AutonomousPaperAgent
 from src.agent.learning import PaperLearningAgent
 from src.agent.risk_governor import RiskGovernor
+from src.agent.explanation_engine import build_multihorizon, decision_analysis
 
 class NexusAgent:
     def __init__(self):
@@ -47,19 +48,19 @@ class NexusAgent:
                 intr=add_indicators(intr);row=intr.iloc[-1];keys=['close','sma20','sma50','rsi14','rel_volume','high20_prev','low20_prev','distance_sma20_pct']
                 if any(not math.isfinite(float(row[k])) for k in keys):continue
                 sig=evaluate(row,self.s);price=float(row['close']);hm=historical_metrics(hist);via,vul=viability_vulnerability(hm);mc=market_context_score(a['market'],bench);mxn=price if a['currency']=='MXN' else price*(fx or 1)
-                raw.append((a,row,sig,resi,price,hm,via,vul,mc,mxn))
+                raw.append((a,row,sig,resi,price,hm,via,vul,mc,mxn,hist))
             except Exception as e:errors.append(f"{a['symbol']}: {e}")
         # Embudo: valida automáticamente solo las mejores candidatas que no tengan cache reciente.
         prelim=[]
         for pack in raw:
-            a,row,sig,resi,price,hm,via,vul,mc,mxn=pack
+            a,row,sig,resi,price,hm,via,vul,mc,mxn,hist=pack
             precomp=composite(sig['score'],via,vul,mc,0)
             prelim.append((precomp,pack))
         prelim.sort(key=lambda z:z[0],reverse=True)
         auto_left=int(self.s.get('validation',{}).get('max_auto_per_scan',2)) if self.s.get('validation',{}).get('auto_validate',True) else 0
         for _,pack in prelim:
             if auto_left<=0:break
-            a,row,sig,resi,price,hm,via,vul,mc,mxn=pack
+            a,row,sig,resi,price,hm,via,vul,mc,mxn,hist=pack
             probe={'score':sig['score'],'viability_score':via,'vulnerability_score':vul}
             if not self._prefilter(probe):continue
             existing=self.validator.load(a['symbol'])
@@ -67,7 +68,7 @@ class NexusAgent:
             try:self.validator.validate(a,mode='quick',force=True);auto_left-=1
             except Exception as e:errors.append(f"VALIDATION {a['symbol']}: {e}")
         for _,pack in prelim:
-            a,row,sig,resi,price,hm,via,vul,mc,mxn=pack
+            a,row,sig,resi,price,hm,via,vul,mc,mxn,hist=pack
             dyn=self.validator.load(a['symbol'])
             dyn_score=float(dyn.get('validation_score',0)) if dyn and dyn.get('status')=='OK' else 0.0
             dyn_match=self.validator.current_setup_matches(dyn,sig['score'],row) if sig['direction']=='BUY' else False
@@ -98,6 +99,8 @@ class NexusAgent:
             x['learning_adjustment_points']=learn_adj
             x['ai_strength_score']=round(max(0,min(100,base_ai+learn_adj)),1)
             x=self.auto.enrich(x,fx,self.port.summary().get('cash_mxn',self.s['paper_portfolio']['starting_cash_mxn']))
+            x['multi_horizon']=build_multihorizon(hist,row)
+            x['decision_analysis']=decision_analysis(x)
             tc=self.s.get('paper_test_campaign',{})
             x['test_campaign_candidate']=bool(tc.get('enabled',False) and tc.get('paper_only',True) and not x.get('validated_match') and x.get('direction')=='BUY' and float(x.get('score',0))>=float(tc.get('min_technical_score',70)) and float(x.get('composite_score',0))>=float(tc.get('min_composite_score',50)) and float(x.get('vulnerability_score',100))<=float(tc.get('max_vulnerability_score',75)) and not x.get('autonomous_pause'))
             snap.append(x)

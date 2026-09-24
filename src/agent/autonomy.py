@@ -55,13 +55,13 @@ class AutonomousPaperAgent:
             old=prev.get(sym,{})
             changed=old.get('action') not in (None,action)
             setup_new=setup and not bool(old.get('setup'))
-            rec={'t':now,'symbol':sym,'name':r.get('name'),'action':action,'previous_action':old.get('action'),'setup_validated':setup,'ai_strength_score':r.get('ai_strength_score'),'validation_score':r.get('validation_score'),'composite_score':r.get('composite_score'),'vulnerability_score':r.get('vulnerability_score'),'market_context_score':r.get('market_context_score'),'risk_plan':r.get('risk_plan',{}),'reason':r.get('reason')}
+            rec={'t':now,'symbol':sym,'name':r.get('name'),'action':action,'previous_action':old.get('action'),'setup_validated':setup,'ai_strength_score':r.get('ai_strength_score'),'validation_score':r.get('validation_score'),'composite_score':r.get('composite_score'),'vulnerability_score':r.get('vulnerability_score'),'market_context_score':r.get('market_context_score'),'risk_plan':r.get('risk_plan',{}),'reason':r.get('reason'),'decision_analysis':r.get('decision_analysis',{}),'multi_horizon':r.get('multi_horizon',{})}
             if changed or setup_new or action in ('PAPER BUY','PAUSAR') and old.get('action')!=action:
                 logs.append(rec)
             if (changed and self.cfg.get('alert_on_action_change',True)) or (setup_new and self.cfg.get('alert_on_setup_detected',True)):
                 title=f"{sym}: {action}"
                 body=("Setup validado detectado. " if setup_new else "Cambio de decisión. ")+f"Fuerza {float(r.get('ai_strength_score',0)):.1f}/100"
-                alert={'id':f"{sym}-{now}-{action}",'t':now,'symbol':sym,'title':title,'body':body,'action':action,'setup_validated':setup,'risk_plan':r.get('risk_plan',{})}
+                alert={'id':f"{sym}-{now}-{action}",'t':now,'symbol':sym,'title':title,'body':body,'action':action,'setup_validated':setup,'risk_plan':r.get('risk_plan',{}),'ai_strength_score':r.get('ai_strength_score'),'validation_score':r.get('validation_score'),'composite_score':r.get('composite_score'),'vulnerability_score':r.get('vulnerability_score'),'market_context_score':r.get('market_context_score'),'rsi14':r.get('rsi14'),'rel_volume':r.get('rel_volume'),'relative_strength_3m_pct':r.get('relative_strength_3m_pct'),'decision_analysis':r.get('decision_analysis',{}),'multi_horizon':r.get('multi_horizon',{})}
                 alerts.append(alert)
             nxt[sym]={'action':action,'setup':setup}
         with self._lock:

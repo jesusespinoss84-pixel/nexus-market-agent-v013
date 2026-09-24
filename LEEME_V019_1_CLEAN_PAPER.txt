@@ -1,10 +1,10 @@
-NEXUS MARKET AGENT V0.19.1 — PAPER OPERATIVO + TELEGRAM
+NEXUS MARKET AGENT V0.20.0 — PAPER OPERATIVO + TELEGRAM
 
 Cambios:
 - Desactivada la campaña temporal TEST_CAMPAIGN_PAPER / PLUMBING_TEST.
 - El agente conserva PAPER autónomo, Shadow Learning, Risk Governor y Telegram.
 - Deduplicación persistente de eventos Telegram para evitar avisos repetidos de una misma entrada/salida.
-- Etiquetas visibles actualizadas a V0.19.1.
+- Etiquetas visibles actualizadas a V0.20.0.
 - Trading real continúa deshabilitado/bloqueado.
 - No se incluyen tokens ni credenciales en el paquete.
 

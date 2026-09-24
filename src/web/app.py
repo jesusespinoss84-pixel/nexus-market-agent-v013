@@ -57,14 +57,28 @@ def create_app():
 
     def opportunity_message(al):
         rp=al.get('risk_plan') or {}
+        da=al.get('decision_analysis') or {}
+        mh=al.get('multi_horizon') or {}
+        rr=mh.get('returns_pct') or da.get('returns_pct') or {}
+        def pct(k):
+            v=rr.get(k)
+            return "—" if v is None else f"{float(v):+.1f}%"
+        support=da.get('support') or []
+        against=da.get('against') or []
+        sup="; ".join(support[:3]) if support else "sin confirmaciones adicionales"
+        con="; ".join(against[:3]) if against else "sin alertas técnicas dominantes"
         return (
-            f"🔎 NEXUS PAPER · OPORTUNIDAD\n"
+            f"🧠 NEXUS V0.20 PAPER · ANÁLISIS DE OPORTUNIDAD\n"
             f"{al.get('symbol','—')} · {al.get('action','—')}\n"
-            f"{al.get('body','')}\n"
-            f"Entrada ref. MXN: {money(rp.get('entry_mxn'))}\n"
-            f"Stop PAPER: {money(rp.get('stop_mxn'))} · Objetivo PAPER: {money(rp.get('target_mxn'))}\n"
-            f"Cantidad simulada sugerida: {rp.get('suggested_shares','—')}\n"
-            f"Métrica interna de investigación; no es probabilidad ni recomendación de inversión."
+            f"Fuerza interna: {float(al.get('ai_strength_score') or 0):.1f}/100 · Validación: {float(al.get('validation_score') or 0):.1f}/100\n"
+            f"Horizontes: 1D {pct('1D')} · 1S {pct('1S')} · 1M {pct('1M')} · 3M {pct('3M')} · 6M {pct('6M')} · 1A {pct('1A')}\n"
+            f"Tendencia multihorizonte: {da.get('consensus',mh.get('consensus','—'))} · Estructura: {da.get('price_structure',mh.get('price_structure','—'))}\n"
+            f"A favor: {sup}.\n"
+            f"En contra/riesgos: {con}.\n"
+            f"DECISIÓN PAPER: {da.get('rationale') or al.get('body','')}\n"
+            f"Entrada ref. MXN: {money(rp.get('entry_mxn'))} · Stop: {money(rp.get('stop_mxn'))} · Objetivo: {money(rp.get('target_mxn'))}\n"
+            f"Cantidad simulada: {rp.get('suggested_shares','—')}\n"
+            f"Métricas internas de investigación; no representan probabilidad de acierto ni recomendación de inversión."
         )
 
     def trade_event_message(ev):
@@ -77,7 +91,8 @@ def create_app():
                 f"Cantidad: {ev.get('shares','—')}\n"
                 f"Entrada PAPER MXN: {money(ev.get('entry_price_mxn'))}\n"
                 f"Stop: {money(ev.get('stop_mxn'))} · Objetivo: {money(ev.get('target_mxn'))}\n"
-                f"Origen: {ev.get('source','LIVE_PAPER')}"
+                f"Origen: {ev.get('source','LIVE_PAPER')}\n"
+                f"Razón al abrir: {((ev.get('decision_snapshot') or {}).get('analysis') or {}).get('rationale','Setup PAPER validado.')}"
             )
         if kind.startswith('SELL'):
             return (
@@ -334,7 +349,7 @@ def create_app():
         c=s.get('paper_test_campaign',{}); ps=portfolio.summary()
         opens=[x for x in ps.get('positions',[]) if x.get('source')=='TEST_CAMPAIGN_PAPER']
         closed=[x for x in ps.get('closed',[]) if x.get('source')=='TEST_CAMPAIGN_PAPER']
-        return jsonify({'version':'0.19.1','enabled':bool(c.get('enabled',False)),'paper_only':True,'purpose':'PLUMBING_TEST_NOT_STRATEGY_VALIDATION','open_test_positions':len(opens),'closed_test_positions':len(closed),'max_open_test_positions':int(c.get('max_open_test_positions',2)),'max_hold_minutes':int(c.get('max_hold_minutes',60)),'real_execution':False,'note':c.get('note')})
+        return jsonify({'version':'0.20.0','enabled':bool(c.get('enabled',False)),'paper_only':True,'purpose':'PLUMBING_TEST_NOT_STRATEGY_VALIDATION','open_test_positions':len(opens),'closed_test_positions':len(closed),'max_open_test_positions':int(c.get('max_open_test_positions',2)),'max_hold_minutes':int(c.get('max_hold_minutes',60)),'real_execution':False,'note':c.get('note')})
 
     @app.get('/api/autonomy/status')
     def autonomy_status():
@@ -606,7 +621,7 @@ def create_app():
     def alerts_supervision():
         bst=local_bridge.status({})
         return jsonify({
-            'ok':True,'version':'0.19.1',
+            'ok':True,'version':'0.20.0',
             'telegram_configured':bool(os.getenv('NEXUS_TELEGRAM_BOT_TOKEN') and os.getenv('NEXUS_TELEGRAM_CHAT_ID')),
             'bridge_online':bool(bst.get('local_bridge_connected')),
             'bridge_age_seconds':bst.get('local_bridge_age_seconds'),
@@ -616,7 +631,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.19.1 · Telegram conectado correctamente. PAPER activo; trading real bloqueado.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.20.0 · Telegram conectado correctamente. PAPER activo; trading real bloqueado.'))
 
     @app.get('/api/platform')
     def platform():
