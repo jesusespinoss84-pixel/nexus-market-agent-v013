@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: "0.19.0"
+  version: "0.19.1"
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -477,7 +477,7 @@ learning_agent:
   note: "Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste pequeño al score interno cuando existe muestra suficiente. No habilita trading real ni modifica estrategias validadas."
 
 paper_test_campaign:
-  enabled: true
+  enabled: false
   paper_only: true
   label: PLUMBING_TEST
   max_open_test_positions: 2

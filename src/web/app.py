@@ -334,7 +334,7 @@ def create_app():
         c=s.get('paper_test_campaign',{}); ps=portfolio.summary()
         opens=[x for x in ps.get('positions',[]) if x.get('source')=='TEST_CAMPAIGN_PAPER']
         closed=[x for x in ps.get('closed',[]) if x.get('source')=='TEST_CAMPAIGN_PAPER']
-        return jsonify({'version':'0.18.0','enabled':bool(c.get('enabled',False)),'paper_only':True,'purpose':'PLUMBING_TEST_NOT_STRATEGY_VALIDATION','open_test_positions':len(opens),'closed_test_positions':len(closed),'max_open_test_positions':int(c.get('max_open_test_positions',2)),'max_hold_minutes':int(c.get('max_hold_minutes',60)),'real_execution':False,'note':c.get('note')})
+        return jsonify({'version':'0.19.1','enabled':bool(c.get('enabled',False)),'paper_only':True,'purpose':'PLUMBING_TEST_NOT_STRATEGY_VALIDATION','open_test_positions':len(opens),'closed_test_positions':len(closed),'max_open_test_positions':int(c.get('max_open_test_positions',2)),'max_hold_minutes':int(c.get('max_hold_minutes',60)),'real_execution':False,'note':c.get('note')})
 
     @app.get('/api/autonomy/status')
     def autonomy_status():
@@ -606,7 +606,7 @@ def create_app():
     def alerts_supervision():
         bst=local_bridge.status({})
         return jsonify({
-            'ok':True,'version':'0.19.0',
+            'ok':True,'version':'0.19.1',
             'telegram_configured':bool(os.getenv('NEXUS_TELEGRAM_BOT_TOKEN') and os.getenv('NEXUS_TELEGRAM_CHAT_ID')),
             'bridge_online':bool(bst.get('local_bridge_connected')),
             'bridge_age_seconds':bst.get('local_bridge_age_seconds'),
@@ -616,7 +616,7 @@ def create_app():
 
     @app.post('/api/alerts/test')
     def alerts_test():
-        return jsonify(send_telegram('NEXUS Market Agent V0.19 · Telegram conectado correctamente. PAPER activo; trading real bloqueado.'))
+        return jsonify(send_telegram('NEXUS Market Agent V0.19.1 · Telegram conectado correctamente. PAPER activo; trading real bloqueado.'))
 
     @app.get('/api/platform')
     def platform():

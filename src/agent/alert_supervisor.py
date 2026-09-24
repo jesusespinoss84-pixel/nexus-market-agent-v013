@@ -35,14 +35,23 @@ class AlertSupervisor:
             return d
 
     def new_trade_events(self, events):
+        # Persistent de-duplication by event fingerprint. This prevents the same
+        # PAPER entry/exit from being sent twice when multiple scheduler jobs
+        # call the dispatcher or when the event file is trimmed/reset.
         with self._lock:
             d = self._read()
-            idx = int(d.get("trade_event_index", 0))
-            # Storage may have been reset/trimmed.
-            if idx > len(events):
-                idx = 0
-            fresh = events[idx:]
-            d["trade_event_index"] = len(events)
+            seen = list(d.get("trade_event_seen", []))
+            seen_set = set(seen)
+            fresh = []
+            for ev in events:
+                key = "|".join(str(ev.get(k, "")) for k in
+                               ("t", "type", "symbol", "opened_utc", "closed_utc", "exit_reason"))
+                if key and key not in seen_set:
+                    fresh.append(ev)
+                    seen.append(key)
+                    seen_set.add(key)
+            d["trade_event_seen"] = seen[-4000:]
+            d["trade_event_index"] = len(events)  # kept for backward diagnostics
             self._write(d)
             return fresh
 

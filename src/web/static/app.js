@@ -430,4 +430,4 @@ async function loadBrokerReconciliation(){
 loadBrokerReconciliation();
 setInterval(loadBrokerReconciliation,15000);
 
-async function loadTestCampaignV0180(){const el=document.getElementById('testCampaign');if(!el)return;try{const r=await fetch('/api/test-campaign/status',{cache:'no-store'});const d=await r.json();el.innerHTML='<b>Estado: '+(d.enabled?'ACTIVA':'INACTIVA')+'</b><br>Modo: PAPER TEST unicamente<br>Posiciones de prueba abiertas: '+Number(d.open_test_positions||0)+' / '+Number(d.max_open_test_positions||0)+'<br>Pruebas cerradas: '+Number(d.closed_test_positions||0)+'<br>Cierre maximo de prueba: '+Number(d.max_hold_minutes||0)+' min<br>Trading real: BLOQUEADO<br><small>Estas operaciones prueban el funcionamiento tecnico; no cuentan como validacion de estrategia.</small>';}catch(e){el.textContent='No se pudo consultar la campana PAPER.'}}loadTestCampaignV0180();setInterval(loadTestCampaignV0180,15000);
+
