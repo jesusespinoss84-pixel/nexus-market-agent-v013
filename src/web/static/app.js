@@ -431,3 +431,18 @@ loadBrokerReconciliation();
 setInterval(loadBrokerReconciliation,15000);
 
 
+
+
+// V0.21 — mobile app shell + PWA install
+(function(){
+  const nav=[...document.querySelectorAll('.bottomNav a')];
+  function mark(){let best=nav[0];let dist=1e9;nav.forEach(a=>{const el=document.querySelector(a.getAttribute('href'));if(el){const d=Math.abs(el.getBoundingClientRect().top-90);if(d<dist){dist=d;best=a}}});nav.forEach(a=>a.classList.toggle('active',a===best));}
+  nav.forEach(a=>a.addEventListener('click',()=>{nav.forEach(x=>x.classList.remove('active'));a.classList.add('active')}));
+  window.addEventListener('scroll',()=>requestAnimationFrame(mark),{passive:true});mark();
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(()=>{});
+  let deferred=null;const bar=document.getElementById('installBar'),btn=document.getElementById('installApp'),dismiss=document.getElementById('dismissInstall');
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;if(bar&&!sessionStorage.getItem('nexusInstallDismissed'))bar.hidden=false});
+  if(btn)btn.onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;bar.hidden=true};
+  if(dismiss)dismiss.onclick=()=>{bar.hidden=true;sessionStorage.setItem('nexusInstallDismissed','1')};
+  window.addEventListener('appinstalled',()=>{if(bar)bar.hidden=true});
+})();

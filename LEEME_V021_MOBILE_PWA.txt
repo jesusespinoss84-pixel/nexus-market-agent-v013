@@ -1,0 +1,18 @@
+NEXUS Market Agent V0.21.0 — Intelligence Terminal
+
+CAMBIOS PRINCIPALES
+- Interfaz mobile-first para uso cómodo desde celular.
+- Navegación inferior: Inicio, Mercado, NEXUS AI, PAPER y Portafolio.
+- Encabezado compacto y panel de bienvenida móvil.
+- Tarjetas, tablas, formularios y gráfica adaptados a pantallas pequeñas.
+- PWA instalable: manifest + service worker + modo standalone.
+- Se conserva el motor V0.20: análisis multihorizonte, Telegram, PAPER, Shadow Learning, Risk Governor y Broker Bridge.
+- Trading real continúa bloqueado.
+
+INSTALACIÓN EN ANDROID
+1. Desplegar esta versión en Render.
+2. Abrir la URL de NEXUS en Chrome.
+3. Usar el aviso Instalar NEXUS si aparece, o menú de Chrome > Agregar a pantalla principal / Instalar aplicación.
+
+NOTA
+La PWA mejora la experiencia de aplicación, pero Render Free puede suspender la instancia por inactividad. Para operación continua se requiere hosting siempre activo.

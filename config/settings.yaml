@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: "0.20.0"
+  version: "0.21.0"
   mode: paper
   live_trading_enabled: false
   port: 5130
