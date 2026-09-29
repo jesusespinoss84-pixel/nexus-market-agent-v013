@@ -11,6 +11,7 @@ from src.agent.learning import PaperLearningAgent
 from src.agent.risk_governor import RiskGovernor
 from src.agent.broker_gateway import IBKRBrokerGateway
 from src.agent.local_bridge_cloud import LocalBridgeCloudState
+from src.agent.paper_broker_queue import PaperBrokerQueue
 from src.agent.validator import SymbolValidator
 from src.agent.alert_supervisor import AlertSupervisor
 from src.data.yfinance_provider import YFinanceProvider
@@ -35,6 +36,7 @@ def create_app():
     riskgov=RiskGovernor(s)
     broker=IBKRBrokerGateway(s,root)
     local_bridge=LocalBridgeCloudState(root)
+    paper_broker_queue=PaperBrokerQueue(root)
     alert_supervisor=AlertSupervisor(root,s)
 
     def send_telegram(text):
@@ -603,6 +605,57 @@ def create_app():
     @app.post('/api/broker/submit')
     def broker_submit_blocked():
         return jsonify({'ok':False,'error':'LIVE_ORDER_TRANSMISSION_BLOCKED','message':'V0.17 no transmite órdenes reales. Revisa el borrador y opera manualmente en el intermediario autorizado.'}),403
+
+
+    @app.get('/api/broker-paper/orders')
+    def broker_paper_orders():
+        return jsonify({'ok':True,'paper_only':True,'real_trading':False,'orders':paper_broker_queue.latest(20)})
+
+    @app.post('/api/broker-paper/prepare')
+    def broker_paper_prepare():
+        body=request.get_json(silent=True) or {}
+        symbol=str(body.get('symbol') or '').upper().strip()
+        side=str(body.get('side') or 'BUY').upper().strip()
+        try: qty=float(body.get('quantity') or 0); price=float(body.get('limit_price') or 0)
+        except Exception: return jsonify({'ok':False,'error':'INVALID_NUMERIC_FIELDS'}),400
+        # V0.26 controlled first phase: US stock PAPER only, one share max, $500 notional max.
+        asset=next((x for x in s.get('assets',[]) if str(x.get('symbol') or '').upper()==symbol),None)
+        if not asset:return jsonify({'ok':False,'error':'UNKNOWN_SYMBOL'}),404
+        if symbol.endswith('.MX'):return jsonify({'ok':False,'error':'V026_IBKR_PAPER_US_ONLY','message':'La primera fase IBKR PAPER acepta acciones de EE.UU.; México sigue en NEXUS PAPER hasta mapear contrato/exchange IBKR.'}),400
+        if side not in {'BUY','SELL'}:return jsonify({'ok':False,'error':'INVALID_SIDE'}),400
+        if qty<=0 or qty>1:return jsonify({'ok':False,'error':'V026_MAX_QTY_1'}),400
+        if price<=0 or qty*price>500:return jsonify({'ok':False,'error':'V026_MAX_NOTIONAL_500_USD'}),400
+        st=local_bridge.status({})
+        if not st.get('local_bridge_connected'):return jsonify({'ok':False,'error':'PAPER_BRIDGE_OFFLINE'}),409
+        row=paper_broker_queue.prepare({'symbol':symbol,'side':side,'quantity':qty,'order_type':'LMT','limit_price':price,'tif':'DAY','currency':'USD','exchange':'SMART','reason':body.get('reason') or 'IBKR_PAPER_CONTROLLED_TEST'})
+        return jsonify({'ok':True,'paper_only':True,'real_trading':False,'manual_confirmation_required':True,'order':row})
+
+    @app.post('/api/broker-paper/confirm')
+    def broker_paper_confirm():
+        body=request.get_json(silent=True) or {}
+        if str(body.get('confirmation') or '').strip().upper()!='PAPER':return jsonify({'ok':False,'error':'TYPE_PAPER_TO_CONFIRM'}),400
+        row=paper_broker_queue.confirm(str(body.get('id') or ''))
+        if not row:return jsonify({'ok':False,'error':'ORDER_NOT_PREPARED'}),409
+        return jsonify({'ok':True,'paper_only':True,'real_trading':False,'order':row})
+
+    @app.post('/api/local-bridge/paper-order/next-body')
+    def local_bridge_paper_order_next():
+        body=request.get_json(silent=True) or {}; token=str(body.get('bridge_token') or '')
+        expected=os.getenv('NEXUS_RENDER_BRIDGE_TOKEN','').strip()
+        import hmac
+        if not expected or not token or not hmac.compare_digest(token,expected):return jsonify({'ok':False,'error':'UNAUTHORIZED'}),401
+        row=paper_broker_queue.next_for_bridge()
+        return jsonify({'ok':True,'paper_only':True,'real_trading':False,'order':row})
+
+    @app.post('/api/local-bridge/paper-order/result-body')
+    def local_bridge_paper_order_result():
+        body=request.get_json(silent=True) or {}; token=str(body.get('bridge_token') or '')
+        expected=os.getenv('NEXUS_RENDER_BRIDGE_TOKEN','').strip()
+        import hmac
+        if not expected or not token or not hmac.compare_digest(token,expected):return jsonify({'ok':False,'error':'UNAUTHORIZED'}),401
+        oid=str(body.get('id') or ''); row=paper_broker_queue.result(oid,body)
+        if not row:return jsonify({'ok':False,'error':'ORDER_NOT_FOUND'}),404
+        return jsonify({'ok':True,'paper_only':True,'real_trading':False})
 
     @app.get('/api/real-trading/status')
     def real_trading_status():

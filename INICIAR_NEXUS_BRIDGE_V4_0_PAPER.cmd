@@ -1,0 +1,5 @@
+@echo off
+cd /d "%~dp0"
+title NEXUS LOCAL BROKER BRIDGE V4.0 - IBKR PAPER CONTROLLED
+python NEXUS_LOCAL_BROKER_BRIDGE_V4_0_PAPER.py
+pause

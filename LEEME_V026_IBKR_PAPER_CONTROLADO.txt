@@ -1,0 +1,10 @@
+NEXUS V0.26.0 - IBKR PAPER CONTROLADO
+
+1) Render: cola de orden PAPER con preparación + confirmación manual.
+2) Bridge V4.0: SOLO acepta cuentas IBKR Paper (prefijo DU), rechaza LIVE, máximo 1 acción y USD 500, LMT DAY.
+3) Primera fase: acciones EE.UU. solamente. México continúa en NEXUS PAPER hasta mapear contratos IBKR correctamente.
+4) El Bridge sigue reportando AccountSummary/Positions cada 30 s.
+5) Nunca envía número de cuenta a Render.
+6) Trading real permanece bloqueado.
+
+Para usar: mantener TWS en Negociación simulada y ejecutar INICIAR_NEXUS_BRIDGE_V4_0_PAPER.cmd.

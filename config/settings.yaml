@@ -626,3 +626,14 @@ paper_execution_pipeline:
   - validation_score
   - strategy_id
   - risk_governor_level
+
+ibkr_paper_execution:
+  enabled: true
+  paper_only: true
+  live_accounts_rejected: true
+  manual_confirmation_required: true
+  allowed_markets: [US]
+  max_quantity: 1
+  max_notional_usd: 500
+  order_type: LMT
+  tif: DAY
