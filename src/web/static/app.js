@@ -218,7 +218,7 @@ function renderPaperLive(pf,tr){
       <div class="riskbar"><span style="width:${progress}%"></span></div>
       <div class="positionmeta"><span>Entrada ${money(p.entry_price_mxn,'MXN')}</span><span>Stop ${money(p.stop_mxn,'MXN')}</span><span>Objetivo ${money(p.target_mxn,'MXN')}</span></div>
       <div class="positionmeta"><span>P/L ${Number(p.unrealized_pct||0).toFixed(2)}%</span><span>Máx favorable ${Number(p.max_favorable_pct||0).toFixed(2)}%</span><span>Máx adverso ${Number(p.max_adverse_pct||0).toFixed(2)}%</span></div>
-      <div class="positionmonitor"><b>${esc(p.monitor_status||'VIGILANDO')}</b><span>${esc(p.monitor_reason||'NEXUS vigila stop, objetivo y precio actual.')}</span></div>
+      <div class="positionmonitor"><b>${esc(p.lifecycle_state||p.monitor_status||'VIGILANDO')}</b><span>${esc(p.monitor_reason||'NEXUS vigila stop, objetivo y precio actual.')}</span></div><div class="positionmeta"><span>Al stop ${p.distance_to_stop_pct==null?'—':Number(p.distance_to_stop_pct).toFixed(2)+'%'}</span><span>Al objetivo ${p.distance_to_target_pct==null?'—':Number(p.distance_to_target_pct).toFixed(2)+'%'}</span><span>Tiempo ${p.minutes_open==null?'—':Number(p.minutes_open)+' min'}</span></div>
       <small>Abierta ${dt(p.opened_utc)} · ${esc(p.strategy_id||'estrategia validada')}</small>
     </div>`;
   }).join(''):`<div class="emptylive">Sin posiciones abiertas. NEXUS esperará un setup actual que coincida con una estrategia validada.</div>`;

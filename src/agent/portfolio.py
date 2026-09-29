@@ -108,7 +108,7 @@ class PaperPortfolio:
                 'strategy_id':row.get('validated_strategy_id'),
                 'validation_score':row.get('validation_score'),
                 'composite_score':row.get('composite_score'),
-                'source':'LIVE_PAPER',
+                'source':'LIVE_PAPER','lifecycle_state':'VIGILANDO','order_status':'SIMULATED_FILLED','order_type':'PAPER_MARKET','tif':'DAY',
                 'decision_snapshot':{'ai_action':row.get('ai_action'),'ai_strength_score':row.get('ai_strength_score'),'technical_score':row.get('score'),'validation_score':row.get('validation_score'),'composite_score':row.get('composite_score'),'vulnerability_score':row.get('vulnerability_score'),'market_context_score':row.get('market_context_score'),'multi_horizon':row.get('multi_horizon',{}),'analysis':row.get('decision_analysis',{})}
             }
             self.data['cash_mxn']-=cost
@@ -172,6 +172,13 @@ class PaperPortfolio:
             p['max_adverse_pct']=round((p['min_price_mxn']/p['entry_price_mxn']-1)*100,2) if p.get('entry_price_mxn') else 0.0
             reason='STOP' if px<=p['stop_mxn'] else 'TARGET' if px>=p['target_mxn'] else None
             p['monitor_status']='CERRAR PAPER' if reason else 'VIGILANDO'
+            p['lifecycle_state']='SALIDA_PAPER' if reason else 'VIGILANDO'
+            p['distance_to_stop_pct']=round((px/p['stop_mxn']-1)*100,2) if p.get('stop_mxn') else None
+            p['distance_to_target_pct']=round((p['target_mxn']/px-1)*100,2) if px and p.get('target_mxn') else None
+            try:
+                opened_dt=datetime.fromisoformat(str(p.get('opened_utc')).replace('Z','+00:00'))
+                p['minutes_open']=max(0,int((datetime.now(timezone.utc)-opened_dt).total_seconds()/60))
+            except Exception:p['minutes_open']=None
             p['monitor_reason']=('Stop alcanzado' if reason=='STOP' else 'Objetivo alcanzado' if reason=='TARGET' else 'Precio entre stop y objetivo; NEXUS continúa vigilando')
             if not reason and p.get('source')=='TEST_CAMPAIGN_PAPER':
                 try:
@@ -252,7 +259,7 @@ class PaperPortfolio:
                 'market_value_mxn':round(px_mxn*sh,2),'unrealized_mxn':round((px_mxn-entry)*sh,2),
                 'opened_utc':datetime.now(timezone.utc).isoformat(),'strategy_id':'MANUAL_PAPER',
                 'validation_score':row.get('validation_score'),'composite_score':row.get('composite_score'),
-                'source':'MANUAL_PAPER'
+                'source':'MANUAL_PAPER','lifecycle_state':'VIGILANDO','order_status':'SIMULATED_FILLED','order_type':'PAPER_MARKET','tif':'DAY'
             }
             self.data['cash_mxn']-=cost
             self.data['positions'].append(p)

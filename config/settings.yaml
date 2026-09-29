@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: 0.24.0
+  version: 0.25.0
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -287,7 +287,8 @@ assets:
   sector: Financiero
   industry: Servicios financieros / microfinanzas
   comparison_benchmark: ^MXX
-  research_reason: Precio menor a MXN 100 y negociación relevante en BMV; sujeto a validación NEXUS.
+  research_reason: Precio menor a MXN 100 y negociación relevante en BMV; sujeto a
+    validación NEXUS.
 - symbol: BBAJIOO.MX
   name: Banco del Bajío
   market: MEX
@@ -295,7 +296,8 @@ assets:
   sector: Financiero
   industry: Banca
   comparison_benchmark: ^MXX
-  research_reason: Emisora mexicana de precio accesible; se incorpora como candidata de investigación, no como recomendación.
+  research_reason: Emisora mexicana de precio accesible; se incorpora como candidata
+    de investigación, no como recomendación.
 - symbol: BOLSAA.MX
   name: Bolsa Mexicana de Valores
   market: MEX
@@ -303,7 +305,8 @@ assets:
   sector: Financiero
   industry: Infraestructura de mercados
   comparison_benchmark: ^MXX
-  research_reason: Acción mexicana activa; se incorpora para validación histórica y seguimiento.
+  research_reason: Acción mexicana activa; se incorpora para validación histórica
+    y seguimiento.
 - symbol: VOLARA.MX
   name: Volaris
   market: MEX
@@ -311,7 +314,8 @@ assets:
   sector: Industrial
   industry: Aerolíneas
   comparison_benchmark: ^MXX
-  research_reason: Precio accesible y actividad bursátil; mayor volatilidad potencial, por lo que requiere filtros de riesgo.
+  research_reason: Precio accesible y actividad bursátil; mayor volatilidad potencial,
+    por lo que requiere filtros de riesgo.
 - symbol: VESTA.MX
   name: Vesta
   market: MEX
@@ -319,7 +323,8 @@ assets:
   sector: Inmobiliario
   industry: Parques industriales
   comparison_benchmark: ^MXX
-  research_reason: Emisora mexicana de precio menor a MXN 100 en referencias recientes; candidata a validación.
+  research_reason: Emisora mexicana de precio menor a MXN 100 en referencias recientes;
+    candidata a validación.
 - symbol: ALSEA.MX
   name: Alsea
   market: MEX
@@ -327,7 +332,8 @@ assets:
   sector: Consumo discrecional
   industry: Restaurantes
   comparison_benchmark: ^MXX
-  research_reason: Emisora activa con formador de mercado anunciado por BMV; candidata a validación.
+  research_reason: Emisora activa con formador de mercado anunciado por BMV; candidata
+    a validación.
 - symbol: LACOMERUBC.MX
   name: La Comer
   market: MEX
@@ -335,7 +341,8 @@ assets:
   sector: Consumo básico
   industry: Retail
   comparison_benchmark: ^MXX
-  research_reason: Precio accesible; candidata de consumo defensivo para comparar contra otras minoristas.
+  research_reason: Precio accesible; candidata de consumo defensivo para comparar
+    contra otras minoristas.
 - symbol: TRAXIONA.MX
   name: Traxión
   market: MEX
@@ -343,7 +350,8 @@ assets:
   sector: Industrial
   industry: Transporte y logística
   comparison_benchmark: ^MXX
-  research_reason: Precio accesible; candidata industrial para diversificar el universo de investigación.
+  research_reason: Precio accesible; candidata industrial para diversificar el universo
+    de investigación.
 validated_strategies:
 - id: NVDA_RSI75_SMA20_2
   symbol: NVDA
@@ -425,7 +433,7 @@ validation:
   interval: 1h
   min_trades: 20
   walk_forward_folds: 5
-  max_auto_per_scan: 2
+  max_auto_per_scan: 6
   prefilter:
     min_technical: 65
     min_viability: 45
@@ -470,7 +478,8 @@ market_intelligence:
   news_sentiment:
     enabled: true
     mode: informational
-    note: Contexto informativo; no sustituye validación histórica ni convierte el score en probabilidad.
+    note: Contexto informativo; no sustituye validación histórica ni convierte el
+      score en probabilidad.
 autonomous_agent:
   enabled: true
   paper_only: true
@@ -501,7 +510,8 @@ alerts:
   daily_summary_enabled: true
   daily_summary_hour_local: 18
   daily_summary_timezone: America/Matamoros
-  note: Alertas PAPER/operativas. No son recomendaciones de inversión ni probabilidades de ganancia.
+  note: Alertas PAPER/operativas. No son recomendaciones de inversión ni probabilidades
+    de ganancia.
   intelligent_explanations: true
   opportunity_min_change_points: 3.0
   opportunity_repeat_cooldown_minutes: 180
@@ -510,7 +520,8 @@ real_trading:
   enabled: false
   execution_mode: manual_confirmation_only
   broker: null
-  note: La ejecución real permanece deshabilitada hasta configurar un intermediario compatible y autorizado. NEXUS no ejecuta órdenes reales de forma autónoma.
+  note: La ejecución real permanece deshabilitada hasta configurar un intermediario
+    compatible y autorizado. NEXUS no ejecuta órdenes reales de forma autónoma.
 learning_agent:
   enabled: true
   paper_only: true
@@ -540,7 +551,9 @@ learning_agent:
     use_paper_portfolio_costs: true
     fx_buffer_pct_us: 0.05
   calibration_max_adjustment_points: 3.0
-  note: 'Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste pequeño al score interno cuando existe muestra suficiente. No habilita trading real ni modifica estrategias validadas.'
+  note: 'Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste
+    pequeño al score interno cuando existe muestra suficiente. No habilita trading
+    real ni modifica estrategias validadas.'
 paper_test_campaign:
   enabled: false
   paper_only: true
@@ -554,7 +567,8 @@ paper_test_campaign:
   take_profit_pct: 2.0
   max_hold_minutes: 60
   cooldown_minutes_after_close: 15
-  note: Campana temporal para comprobar el ciclo tecnico PAPER. Sus resultados NO validan una estrategia y NO habilitan trading real.
+  note: Campana temporal para comprobar el ciclo tecnico PAPER. Sus resultados NO
+    validan una estrategia y NO habilitan trading real.
 risk_governor:
   enabled: true
   paper_only: true
@@ -590,3 +604,25 @@ broker_gateway:
   audit_max: 2000
   live_order_transmission: false
   manual_confirmation_required: true
+paper_execution_pipeline:
+  enabled: true
+  paper_only: true
+  broker_transmission: false
+  manual_confirmation_for_broker_paper: true
+  default_order_type: LMT
+  default_tif: DAY
+  track_partial_fills: true
+  track_order_status: true
+  fields:
+  - symbol
+  - side
+  - quantity
+  - order_type
+  - limit_price
+  - tif
+  - stop_price
+  - target_price
+  - estimated_notional_mxn
+  - validation_score
+  - strategy_id
+  - risk_governor_level

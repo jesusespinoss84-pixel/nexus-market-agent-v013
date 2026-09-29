@@ -17,3 +17,9 @@
 - Borrador auditable de orden.
 - Endpoint de envío real explícitamente bloqueado (HTTP 403).
 - PAPER, aprendizaje, validación, Risk Governor y stress tests permanecen intactos.
+
+## V0.25.0
+- Ciclo de operación PAPER ampliado.
+- Validación automática acelerada a 6 candidatas por scan.
+- Monitor de posiciones con distancias a stop/objetivo y tiempo abierto.
+- Endpoint de borrador de orden PAPER sin transmisión al broker.

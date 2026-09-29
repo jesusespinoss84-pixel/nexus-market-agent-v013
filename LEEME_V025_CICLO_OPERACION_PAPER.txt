@@ -1,0 +1,13 @@
+NEXUS MARKET AGENT V0.25.0 — CICLO DE OPERACIÓN PAPER
+
+Cambios:
+- Acelera el embudo de validación automática: hasta 6 emisoras por escaneo (antes 2).
+- Mantiene validación estricta: no compra PAPER por precio bajo ni por score técnico aislado.
+- Monitor de posición ampliado: estado de ciclo, P/L, máximo favorable/adverso, distancia a stop, distancia a objetivo y minutos abierta.
+- Borrador de orden PAPER por símbolo: /api/paper/order-draft/<symbol>.
+- El borrador incluye símbolo, lado, cantidad, tipo LMT, límite, DAY, stop, objetivo, nocional estimado, validación, estrategia y Risk Governor.
+- NO transmite órdenes a IBKR. broker_transmission=false.
+- Trading real permanece bloqueado.
+
+Camino de desarrollo:
+DETECTAR -> VALIDAR -> CONFIRMAR SETUP -> PREPARAR ORDEN -> PAPER FILLED -> VIGILAR -> CERRAR -> APRENDER.

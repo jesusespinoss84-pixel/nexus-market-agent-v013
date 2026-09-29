@@ -312,6 +312,22 @@ def create_app():
         st=scan_job()
         return jsonify({'ok':True,'state':st or readj(root/s['storage']['state'],{})})
 
+    @app.get('/api/paper/order-draft/<symbol>')
+    def paper_order_draft(symbol):
+        asset=next((x for x in s['assets'] if x['symbol']==symbol),None)
+        if not asset:return jsonify({'ok':False,'error':'UNKNOWN_SYMBOL'}),404
+        rows=readj(root/s['storage']['snapshot'],[])
+        row=next((x for x in rows if x.get('symbol')==symbol),None)
+        if not row:return jsonify({'ok':False,'error':'NO_SNAPSHOT'}),404
+        fx=provider.get_usdmxn(); plan=row.get('risk_plan') or {}
+        return jsonify({'ok':True,'paper_only':True,'broker_transmission':False,'manual_confirmation_required':True,
+          'draft':{'symbol':symbol,'name':row.get('name'),'side':'BUY','quantity':plan.get('suggested_shares'),
+          'order_type':'LMT','limit_price_mxn':plan.get('entry_mxn'),'tif':'DAY','stop_price_mxn':plan.get('stop_mxn'),
+          'target_price_mxn':plan.get('target_mxn'),'estimated_notional_mxn':plan.get('suggested_notional_mxn'),
+          'validation_score':row.get('validation_score'),'strategy_id':row.get('validated_strategy_id'),
+          'setup_confirmed':bool(row.get('validated_match')),'risk_governor_level':row.get('risk_governor_level'),
+          'decision':row.get('ai_action')}})
+
     @app.post('/api/paper/order')
     def paper_order():
         body=request.get_json(silent=True) or {}
