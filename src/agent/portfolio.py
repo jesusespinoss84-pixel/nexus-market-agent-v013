@@ -165,7 +165,14 @@ class PaperPortfolio:
             p['last_quote_utc']=q.get('timestamp') or now
             p['market_value_mxn']=round(px*p['shares'],2)
             p['unrealized_mxn']=round((px-p['entry_price_mxn'])*p['shares'],2)
+            p['unrealized_pct']=round((px/p['entry_price_mxn']-1)*100,2) if p.get('entry_price_mxn') else 0.0
+            p['max_price_mxn']=round(max(float(p.get('max_price_mxn',p['entry_price_mxn'])),px),2)
+            p['min_price_mxn']=round(min(float(p.get('min_price_mxn',p['entry_price_mxn'])),px),2)
+            p['max_favorable_pct']=round((p['max_price_mxn']/p['entry_price_mxn']-1)*100,2) if p.get('entry_price_mxn') else 0.0
+            p['max_adverse_pct']=round((p['min_price_mxn']/p['entry_price_mxn']-1)*100,2) if p.get('entry_price_mxn') else 0.0
             reason='STOP' if px<=p['stop_mxn'] else 'TARGET' if px>=p['target_mxn'] else None
+            p['monitor_status']='CERRAR PAPER' if reason else 'VIGILANDO'
+            p['monitor_reason']=('Stop alcanzado' if reason=='STOP' else 'Objetivo alcanzado' if reason=='TARGET' else 'Precio entre stop y objetivo; NEXUS continúa vigilando')
             if not reason and p.get('source')=='TEST_CAMPAIGN_PAPER':
                 try:
                     opened=datetime.fromisoformat(str(p.get('opened_utc')).replace('Z','+00:00'))

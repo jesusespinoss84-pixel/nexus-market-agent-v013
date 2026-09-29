@@ -1,0 +1,10 @@
+NEXUS Market Agent V0.24.0
+
+Cambios principales:
+- Universo mexicano ampliado con candidatas de investigación de precio accesible.
+- Filtro Mexicanas < $100 MXN.
+- Ordenamiento por precio MXN equivalente, validación, robustez o cercanía al setup.
+- Confirmación del setup usa los umbrales de la mejor validación dinámica de cada emisora cuando existe.
+- Monitor PAPER enriquecido: P/L %, máximo favorable/adverso, estado VIGILANDO y motivo.
+- Trading real permanece bloqueado.
+- Las nuevas emisoras son candidatas de investigación, no recomendaciones de compra.

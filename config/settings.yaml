@@ -1,6 +1,6 @@
 app:
   name: NEXUS Market Agent
-  version: "0.23.0"
+  version: 0.24.0
   mode: paper
   live_trading_enabled: false
   port: 5130
@@ -20,7 +20,7 @@ agent:
   min_score_watch: 55
   min_relative_volume: 1.5
 affordability:
-  cheap_mexican_max_mxn: 50
+  cheap_mexican_max_mxn: 100
   affordable_mxn: 500
   affordable_usd: 100
 paper_portfolio:
@@ -280,6 +280,70 @@ assets:
   sector: Materiales
   industry: Vidrio
   comparison_benchmark: ^MXX
+- symbol: GENTERA.MX
+  name: Gentera
+  market: MEX
+  currency: MXN
+  sector: Financiero
+  industry: Servicios financieros / microfinanzas
+  comparison_benchmark: ^MXX
+  research_reason: Precio menor a MXN 100 y negociación relevante en BMV; sujeto a validación NEXUS.
+- symbol: BBAJIOO.MX
+  name: Banco del Bajío
+  market: MEX
+  currency: MXN
+  sector: Financiero
+  industry: Banca
+  comparison_benchmark: ^MXX
+  research_reason: Emisora mexicana de precio accesible; se incorpora como candidata de investigación, no como recomendación.
+- symbol: BOLSAA.MX
+  name: Bolsa Mexicana de Valores
+  market: MEX
+  currency: MXN
+  sector: Financiero
+  industry: Infraestructura de mercados
+  comparison_benchmark: ^MXX
+  research_reason: Acción mexicana activa; se incorpora para validación histórica y seguimiento.
+- symbol: VOLARA.MX
+  name: Volaris
+  market: MEX
+  currency: MXN
+  sector: Industrial
+  industry: Aerolíneas
+  comparison_benchmark: ^MXX
+  research_reason: Precio accesible y actividad bursátil; mayor volatilidad potencial, por lo que requiere filtros de riesgo.
+- symbol: VESTA.MX
+  name: Vesta
+  market: MEX
+  currency: MXN
+  sector: Inmobiliario
+  industry: Parques industriales
+  comparison_benchmark: ^MXX
+  research_reason: Emisora mexicana de precio menor a MXN 100 en referencias recientes; candidata a validación.
+- symbol: ALSEA.MX
+  name: Alsea
+  market: MEX
+  currency: MXN
+  sector: Consumo discrecional
+  industry: Restaurantes
+  comparison_benchmark: ^MXX
+  research_reason: Emisora activa con formador de mercado anunciado por BMV; candidata a validación.
+- symbol: LACOMERUBC.MX
+  name: La Comer
+  market: MEX
+  currency: MXN
+  sector: Consumo básico
+  industry: Retail
+  comparison_benchmark: ^MXX
+  research_reason: Precio accesible; candidata de consumo defensivo para comparar contra otras minoristas.
+- symbol: TRAXIONA.MX
+  name: Traxión
+  market: MEX
+  currency: MXN
+  sector: Industrial
+  industry: Transporte y logística
+  comparison_benchmark: ^MXX
+  research_reason: Precio accesible; candidata industrial para diversificar el universo de investigación.
 validated_strategies:
 - id: NVDA_RSI75_SMA20_2
   symbol: NVDA
@@ -406,9 +470,7 @@ market_intelligence:
   news_sentiment:
     enabled: true
     mode: informational
-    note: Contexto informativo; no sustituye validación histórica ni convierte el
-      score en probabilidad.
-
+    note: Contexto informativo; no sustituye validación histórica ni convierte el score en probabilidad.
 autonomous_agent:
   enabled: true
   paper_only: true
@@ -424,7 +486,6 @@ autonomous_agent:
   alert_on_setup_detected: true
   decision_log_max: 5000
   alert_feed_max: 1000
-
 alerts:
   browser_enabled: true
   telegram_enabled: true
@@ -440,25 +501,26 @@ alerts:
   daily_summary_enabled: true
   daily_summary_hour_local: 18
   daily_summary_timezone: America/Matamoros
-  note: "Alertas PAPER/operativas. No son recomendaciones de inversión ni probabilidades de ganancia."
+  note: Alertas PAPER/operativas. No son recomendaciones de inversión ni probabilidades de ganancia.
   intelligent_explanations: true
   opportunity_min_change_points: 3.0
   opportunity_repeat_cooldown_minutes: 180
   include_multihorizon: true
-
 real_trading:
   enabled: false
   execution_mode: manual_confirmation_only
   broker: null
-  note: "La ejecución real permanece deshabilitada hasta configurar un intermediario compatible y autorizado. NEXUS no ejecuta órdenes reales de forma autónoma."
-
+  note: La ejecución real permanece deshabilitada hasta configurar un intermediario compatible y autorizado. NEXUS no ejecuta órdenes reales de forma autónoma.
 learning_agent:
   enabled: true
   paper_only: true
   sample_interval_minutes: 60
   duplicate_same_decision_minutes: 240
-  counterfactual_move_threshold_pct: 0.50
-  horizons_minutes: [60, 1440, 7200]
+  counterfactual_move_threshold_pct: 0.5
+  horizons_minutes:
+  - 60
+  - 1440
+  - 7200
   max_samples: 20000
   min_samples_for_adjustment: 30
   adjustment_horizon_minutes: 1440
@@ -478,8 +540,7 @@ learning_agent:
     use_paper_portfolio_costs: true
     fx_buffer_pct_us: 0.05
   calibration_max_adjustment_points: 3.0
-  note: "Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste pequeño al score interno cuando existe muestra suficiente. No habilita trading real ni modifica estrategias validadas."
-
+  note: 'Aprendizaje en sombra: evalúa decisiones PAPER y aplica como máximo un ajuste pequeño al score interno cuando existe muestra suficiente. No habilita trading real ni modifica estrategias validadas.'
 paper_test_campaign:
   enabled: false
   paper_only: true
@@ -493,8 +554,7 @@ paper_test_campaign:
   take_profit_pct: 2.0
   max_hold_minutes: 60
   cooldown_minutes_after_close: 15
-  note: "Campana temporal para comprobar el ciclo tecnico PAPER. Sus resultados NO validan una estrategia y NO habilitan trading real."
-
+  note: Campana temporal para comprobar el ciclo tecnico PAPER. Sus resultados NO validan una estrategia y NO habilitan trading real.
 risk_governor:
   enabled: true
   paper_only: true
@@ -509,11 +569,16 @@ risk_governor:
   block_new_entries_in_defensive: true
   block_new_entries_in_pause: true
   stress_scenarios:
-    - {name: CAIDA_BRUSCA, shock_pct: -8, slippage_multiplier: 3.0}
-    - {name: VOLATILIDAD_ALTA, shock_pct: -4, slippage_multiplier: 5.0}
-    - {name: FX_ADVERSO_US, shock_pct: -3, fx_shock_pct: -5, slippage_multiplier: 2.0}
-
-# V0.17 — Broker Gateway. Lectura/preview solamente; nunca transmite órdenes reales.
+  - name: CAIDA_BRUSCA
+    shock_pct: -8
+    slippage_multiplier: 3.0
+  - name: VOLATILIDAD_ALTA
+    shock_pct: -4
+    slippage_multiplier: 5.0
+  - name: FX_ADVERSO_US
+    shock_pct: -3
+    fx_shock_pct: -5
+    slippage_multiplier: 2.0
 broker_gateway:
   enabled: false
   provider: IBKR
