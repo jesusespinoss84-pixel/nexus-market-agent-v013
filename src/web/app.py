@@ -289,7 +289,7 @@ def create_app():
     @app.get('/api/chart/<symbol>/<period>')
     def chart(symbol,period):
         a=next((x for x in s['assets'] if x['symbol']==symbol),None)
-        mp={'1m':('1mo','1d'),'3m':('3mo','1d'),'1y':('1y','1d'),'5d':('5d','5m')}
+        mp={'1d':('1d','5m'),'1w':('5d','30m'),'5d':('5d','5m'),'1m':('1mo','1d'),'3m':('3mo','1d'),'6m':('6mo','1d'),'1y':('1y','1d'),'2y':('2y','1d'),'5y':('5y','1wk')}
         if not a or period not in mp:return jsonify({'points':[]}),404
         per,intv=mp[period]
         df,resolved,_=provider.get_bars(symbol,per,intv,a.get('fallback_symbols',[]))

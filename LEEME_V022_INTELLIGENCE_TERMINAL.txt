@@ -1,0 +1,12 @@
+NEXUS Market Agent V0.22.0
+
+Cambios:
+- Botones principales: Actualizar mercado y Analizar ahora.
+- Gráfica ampliada en escritorio y celular.
+- Rangos: 1D, 1S, 5D, 1M, 3M, 6M, 1A, 2A y 5A.
+- Consulta interactiva de fecha/precio con mouse o toque.
+- “ESPERAR SETUP” se presenta al usuario como “ESPERANDO CONFIRMACIÓN”, con explicación clara.
+- Se conserva el motor de maduración 1 h / 1 día / 5 días y sus guardrails.
+- Telegram, autonomía PAPER, Risk Governor, validación y bloqueo de trading real se conservan.
+
+Trading real continúa bloqueado. Los scores son métricas internas de investigación, no probabilidades ni garantías.
