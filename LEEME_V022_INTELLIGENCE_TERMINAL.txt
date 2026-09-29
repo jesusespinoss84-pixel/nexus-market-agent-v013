@@ -1,4 +1,4 @@
-NEXUS Market Agent V0.22.0
+NEXUS Market Agent V0.23.0
 
 Cambios:
 - Botones principales: Actualizar mercado y Analizar ahora.

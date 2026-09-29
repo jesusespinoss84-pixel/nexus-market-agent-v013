@@ -1,0 +1,14 @@
+NEXUS Market Agent V0.23.0
+
+MEJORA PRINCIPAL
+- Cuando NEXUS está en ESPERANDO CONFIRMACIÓN, muestra exactamente qué condiciones faltan para activar el setup validado.
+- Compara valor actual vs requisito de: Score técnico, RSI14 y distancia a SMA20.
+- Marca cada condición como cumplida o pendiente y muestra la brecha restante.
+- Usa primero la mejor validación dinámica propia; si no existe, usa la estrategia validada estática.
+
+SEGURIDAD / ALCANCE
+- No cambia los umbrales ni la lógica que abre posiciones.
+- PAPER autónomo se conserva.
+- Risk Governor, Shadow Learning, Telegram e IBKR Bridge se conservan.
+- Trading real continúa bloqueado.
+- Los scores internos no son probabilidades de ganancia.

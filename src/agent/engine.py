@@ -21,6 +21,33 @@ class NexusAgent:
         for st in self.s.get('validated_strategies',[]):
             if symbol==st['symbol'] and direction==st['direction'] and score>=int(st['min_score']) and float(row['rsi14'])>=float(st.get('rsi14_min',-999)) and float(row['distance_sma20_pct'])>=float(st.get('distance_sma20_pct_min',-999)):return st
         return None
+    def setup_confirmation(self, validation, static_strategy, signal_score, row, direction):
+        """Explain the exact current conditions without changing entry logic."""
+        if direction != 'BUY':
+            return {'available': False, 'source': None, 'all_met': False, 'conditions': [], 'summary': 'La señal actual no es BUY.'}
+        req = None
+        source = None
+        strategy_id = None
+        if validation and validation.get('validated') and validation.get('best'):
+            b = validation['best']
+            req = {'score': float(b['score_min']), 'rsi14': float(b['rsi_min']), 'sma20': float(b['sma20_distance_min'])}
+            source = 'VALIDACIÓN DINÁMICA'
+            strategy_id = f"DYNAMIC_{validation.get('symbol','')}"
+        elif static_strategy:
+            req = {'score': float(static_strategy['min_score']), 'rsi14': float(static_strategy.get('rsi14_min', -999)), 'sma20': float(static_strategy.get('distance_sma20_pct_min', -999))}
+            source = 'ESTRATEGIA VALIDADA'
+            strategy_id = static_strategy.get('id')
+        if not req:
+            return {'available': False, 'source': None, 'all_met': False, 'conditions': [], 'summary': 'Todavía no hay una estrategia validada disponible para comparar.'}
+        current = {'score': float(signal_score), 'rsi14': float(row['rsi14']), 'sma20': float(row['distance_sma20_pct'])}
+        specs = [('score','Score técnico','puntos'),('rsi14','RSI14',''),('sma20','Distancia SMA20','%')]
+        conditions=[]
+        for key,label,unit in specs:
+            cur=current[key]; need=req[key]; met=cur >= need
+            conditions.append({'key':key,'label':label,'current':round(cur,2),'required':round(need,2),'unit':unit,'met':met,'gap':round(max(0.0,need-cur),2)})
+        missing=[c for c in conditions if not c['met']]
+        return {'available': True, 'source': source, 'strategy_id': strategy_id, 'all_met': not missing, 'conditions': conditions, 'missing_count': len(missing), 'summary': ('Todas las condiciones del setup están confirmadas.' if not missing else f"Faltan {len(missing)} de {len(conditions)} condiciones para confirmar el setup.")}
+
     def benchmarks(self):
         out=[]
         for b in self.s.get('benchmarks',[]):
@@ -82,6 +109,7 @@ class NexusAgent:
             context12=round(mc*0.55+float(intel.get('market_intelligence_score',50))*0.45,1)
             comp=composite(sig['score'],via,vul,context12,vs)
             x={'timestamp':now,'symbol':a['symbol'],'resolved_symbol':resi,'name':a['name'],'aliases':a.get('aliases',''),'sector':a.get('sector',''),'industry':a.get('industry',''),'market':a['market'],'currency':a['currency'],'price':round(price,4),'mxn_equivalent':round(mxn,2),'cheap_mexican_under_50':a['market']=='MEX' and price<float(self.s['affordability']['cheap_mexican_max_mxn']),'direction':sig['direction'],'score':int(sig['score']),'rsi14':round(float(row['rsi14']),2),'rel_volume':round(float(row['rel_volume']),2),'distance_sma20_pct':round(float(row['distance_sma20_pct']),2),'viability_score':via,'vulnerability_score':vul,'market_context_score':context12,'validation_score':vs,'composite_score':comp,'validated_match':match,'validation_available':bool(dyn),'validation_mode':dyn.get('mode') if dyn else None,'validation_robustness':dyn.get('robustness_score') if dyn else None,'validation_walk_forward':(dyn.get('walk_forward') or {}).get('label') if dyn else None,'validated_strategy_id':(f"DYNAMIC_{a['symbol']}" if dyn_match else static['id'] if static else None),**intel,**{k:(round(v,2) if isinstance(v,(int,float)) and v is not None else v) for k,v in hm.items()}}
+            x['setup_confirmation']=self.setup_confirmation(dyn,static,sig['score'],row,sig['direction'])
             x['decision']=self.decision(x);x['reason']=explanation(x)
             # V0.14: acción del agente para soporte de decisión / PAPER. No es probabilidad de ganancia.
             if x['vulnerability_score']>=80 or x['market_context_score']<=25:
