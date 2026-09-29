@@ -616,7 +616,7 @@ def create_app():
         body=request.get_json(silent=True) or {}
         symbol=str(body.get('symbol') or '').upper().strip()
         side=str(body.get('side') or 'BUY').upper().strip()
-        try: qty=float(body.get('quantity') or 0); price=float(body.get('limit_price') or 0)
+        try: qty=float(body.get('quantity') or 0); price=float(body.get('limit_price') or 0); tws_ref=float(body.get('tws_reference_price') or 0)
         except Exception: return jsonify({'ok':False,'error':'INVALID_NUMERIC_FIELDS'}),400
         # V0.26 controlled first phase: US stock PAPER only, one share max, $500 notional max.
         asset=next((x for x in s.get('assets',[]) if str(x.get('symbol') or '').upper()==symbol),None)
@@ -625,9 +625,12 @@ def create_app():
         if side not in {'BUY','SELL'}:return jsonify({'ok':False,'error':'INVALID_SIDE'}),400
         if qty<=0 or qty>1:return jsonify({'ok':False,'error':'V026_MAX_QTY_1'}),400
         if price<=0 or qty*price>500:return jsonify({'ok':False,'error':'V026_MAX_NOTIONAL_500_USD'}),400
+        if tws_ref<=0:return jsonify({'ok':False,'error':'TWS_REFERENCE_PRICE_REQUIRED','message':'Captura el precio actual visible en TWS antes de preparar la orden.'}),400
+        deviation=abs(price-tws_ref)/tws_ref*100.0
+        if deviation>2.5:return jsonify({'ok':False,'error':'LOCAL_PRICE_GUARD','message':f'Precio límite fuera de la guarda local: {deviation:.2f}% vs precio visible TWS. Máximo 2.5%.'}),400
         st=local_bridge.status({})
         if not st.get('local_bridge_connected'):return jsonify({'ok':False,'error':'PAPER_BRIDGE_OFFLINE'}),409
-        row=paper_broker_queue.prepare({'symbol':symbol,'side':side,'quantity':qty,'order_type':'LMT','limit_price':price,'tif':'DAY','currency':'USD','exchange':'SMART','reason':body.get('reason') or 'IBKR_PAPER_CONTROLLED_TEST'})
+        row=paper_broker_queue.prepare({'symbol':symbol,'side':side,'quantity':qty,'order_type':'LMT','limit_price':price,'tws_reference_price':tws_ref,'tif':'DAY','currency':'USD','exchange':'SMART','reason':body.get('reason') or 'IBKR_PAPER_CONTROLLED_TEST'})
         return jsonify({'ok':True,'paper_only':True,'real_trading':False,'manual_confirmation_required':True,'order':row})
 
     @app.post('/api/broker-paper/confirm')

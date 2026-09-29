@@ -20,7 +20,7 @@ class PaperBrokerQueue:
              "real_trading":False,"manual_confirmation":True,"bridge_dispatched":False,
              "symbol":str(payload.get("symbol") or "").upper().strip(),"side":str(payload.get("side") or "BUY").upper().strip(),
              "quantity":float(payload.get("quantity") or 0),"order_type":str(payload.get("order_type") or "LMT").upper().strip(),
-             "limit_price":float(payload.get("limit_price") or 0),"tif":str(payload.get("tif") or "DAY").upper().strip(),
+             "limit_price":float(payload.get("limit_price") or 0),"tws_reference_price":float(payload.get("tws_reference_price") or 0),"tif":str(payload.get("tif") or "DAY").upper().strip(),
              "currency":str(payload.get("currency") or "USD").upper(),"exchange":str(payload.get("exchange") or "SMART").upper(),
              "reason":str(payload.get("reason") or "IBKR_PAPER_CONTROLLED_TEST")[:300]}
         with self.lock:
