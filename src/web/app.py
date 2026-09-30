@@ -630,8 +630,8 @@ def create_app():
         if deviation>2.5:return jsonify({'ok':False,'error':'LOCAL_PRICE_GUARD','message':f'Precio límite fuera de la guarda local: {deviation:.2f}% vs precio visible TWS. Máximo 2.5%.'}),400
         st=local_bridge.status({})
         if not st.get('local_bridge_connected'):return jsonify({'ok':False,'error':'PAPER_BRIDGE_OFFLINE'}),409
-        row=paper_broker_queue.prepare({'symbol':symbol,'side':side,'quantity':qty,'order_type':'LMT','limit_price':price,'tws_reference_price':tws_ref,'tif':'DAY','currency':'USD','exchange':'SMART','reason':body.get('reason') or 'IBKR_PAPER_CONTROLLED_TEST'})
-        return jsonify({'ok':True,'paper_only':True,'real_trading':False,'manual_confirmation_required':True,'order':row})
+        row=paper_broker_queue.prepare({'symbol':symbol,'side':side,'quantity':qty,'order_type':'LMT','limit_price':price,'tws_reference_price':tws_ref,'tws_reference_source':'MANUAL_TWS_PRICE','tif':'DAY','currency':'USD','exchange':'SMART','reason':body.get('reason') or 'IBKR_PAPER_CONTROLLED_TEST'})
+        return jsonify({'ok':True,'paper_only':True,'real_trading':False,'manual_confirmation_required':True,'price_guard_pct':round(deviation,4),'tws_reference_source':'MANUAL_TWS_PRICE','order':row})
 
     @app.post('/api/broker-paper/confirm')
     def broker_paper_confirm():

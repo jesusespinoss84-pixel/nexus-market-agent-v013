@@ -1,0 +1,17 @@
+NEXUS V0.26.3 - IBKR PAPER PRICE GUARD
+
+Cambio principal:
+- El precio visible en TWS capturado manualmente se registra como MANUAL_TWS_PRICE.
+- La orden PAPER solo pasa si la diferencia entre precio limite y referencia TWS es <= 2.5%.
+- Bridge V4.3 exige cuenta PAPER (DU), US STK, max 1 accion, max USD 500, LMT DAY.
+- overridePercentageConstraints permanece False.
+- No se desactivan las precauciones de TWS.
+- Cuentas LIVE siguen rechazadas.
+- Trading real sigue bloqueado.
+
+Flujo:
+1) Abrir TWS en cuenta SIMULADA.
+2) Ejecutar INICIAR_NEXUS_BRIDGE_V4_3_PAPER.cmd.
+3) En NEXUS seleccionar simbolo y copiar el precio actual visible en TWS.
+4) Preparar la orden PAPER. Revisar que la guarda de precio pase.
+5) Solo despues escribir PAPER y confirmar.
