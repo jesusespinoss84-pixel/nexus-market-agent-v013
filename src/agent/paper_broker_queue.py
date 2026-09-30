@@ -58,5 +58,33 @@ class PaperBrokerQueue:
                     r['updated_utc']=event['received_utc']; found=dict(r); break
             self._save(rows)
         return found
+    def recover_from_tws(self, payload):
+        """Upsert an existing IBKR PAPER order discovered after a Bridge/TWS restart."""
+        ibkr_id=int(payload.get('ibkr_order_id') or 0)
+        perm_id=int(payload.get('perm_id') or 0)
+        if ibkr_id <= 0 and perm_id <= 0: return None
+        now=datetime.now(timezone.utc).isoformat()
+        with self.lock:
+            rows=self._load(); found=None
+            for r in rows:
+                if (ibkr_id and int(r.get('ibkr_order_id') or 0)==ibkr_id) or (perm_id and int(r.get('perm_id') or 0)==perm_id):
+                    found=r; break
+            if found is None:
+                rid=f"recovered-{perm_id or ibkr_id}"
+                found={"id":rid,"created_utc":now,"updated_utc":now,"status":"TWS_RECOVERED_OPEN_ORDER",
+                       "paper_only":True,"real_trading":False,"manual_confirmation":False,"bridge_dispatched":True,
+                       "recovered_from_tws":True,"recovery_source":"TWS_OPEN_ORDERS_ON_STARTUP"}
+                rows.append(found)
+            allowed={'symbol','side','quantity','order_type','limit_price','tif','currency','exchange','ibkr_order_id','perm_id','tws_raw_status','tws_warning_text','transmit','filled','remaining','avg_fill_price','execution_state'}
+            for k in allowed:
+                if k in payload: found[k]=payload[k]
+            found['status']=str(payload.get('status') or found.get('status') or 'TWS_RECOVERED_OPEN_ORDER')
+            found['updated_utc']=now
+            event={k:payload[k] for k in allowed if k in payload}
+            event.update({'event_type':'RECOVERED_FROM_TWS','received_utc':now,'status':found['status']})
+            found.setdefault('events',[]).append(event); found['events']=found['events'][-100:]
+            self._save(rows)
+            return dict(found)
+
     def latest(self, n=20):
         with self.lock: return list(reversed(self._load()[-n:]))

@@ -660,6 +660,18 @@ def create_app():
         if not row:return jsonify({'ok':False,'error':'ORDER_NOT_FOUND'}),404
         return jsonify({'ok':True,'paper_only':True,'real_trading':False})
 
+    @app.post('/api/local-bridge/paper-order/recover-body')
+    def local_bridge_paper_order_recover():
+        body=request.get_json(silent=True) or {}; token=str(body.get('bridge_token') or '')
+        expected=os.getenv('NEXUS_RENDER_BRIDGE_TOKEN','').strip()
+        import hmac
+        if not expected or not token or not hmac.compare_digest(token,expected):return jsonify({'ok':False,'error':'UNAUTHORIZED'}),401
+        # Recovery is PAPER audit/state only; it never creates or transmits an order.
+        if not bool(body.get('paper_account_verified')):return jsonify({'ok':False,'error':'PAPER_ACCOUNT_NOT_VERIFIED'}),409
+        row=paper_broker_queue.recover_from_tws(body)
+        if not row:return jsonify({'ok':False,'error':'INVALID_RECOVERED_ORDER'}),400
+        return jsonify({'ok':True,'paper_only':True,'real_trading':False,'order_id':row.get('id')})
+
     @app.get('/api/real-trading/status')
     def real_trading_status():
         cfg=s.get('real_trading',{})

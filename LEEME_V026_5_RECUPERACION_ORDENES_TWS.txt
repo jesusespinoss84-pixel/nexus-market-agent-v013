@@ -1,0 +1,9 @@
+NEXUS V0.26.5 / BRIDGE V4.5
+
+Objetivo: recuperar órdenes PAPER abiertas existentes en TWS después de reiniciar Bridge/TWS.
+
+Al iniciar, Bridge V4.5 llama reqOpenOrders(). Cada openOrder no perteneciente a la cola actual se reporta a Render como TWS_RECOVERED_OPEN_ORDER. Esto es recuperación/auditoría: NO vuelve a transmitir la orden.
+
+Mantiene: cuenta PAPER obligatoria, LIVE rechazada, US STK, max 1 acción, max USD 500, LMT DAY, MANUAL_TWS_PRICE, guarda 2.5%, overridePercentageConstraints=False.
+
+Launcher: INICIAR_NEXUS_BRIDGE_V4_5_PAPER.cmd
