@@ -1,0 +1,30 @@
+NEXUS V0.26.4 — RETORNO DE ESTADO DE ORDEN TWS PAPER
+
+Objetivo:
+- Mantener PAPER únicamente.
+- Distinguir que una orden llegue a TWS de que realmente sea transmitida o ejecutada.
+
+Bridge V4.4 reporta a Render/NEXUS:
+- OPEN_ORDER / TWS_ORDER_RECEIVED
+- ORDER_STATUS: pendiente, pre-enviada, transmitida, ejecutada, cancelada o inactiva
+- EXECUTION: ejecución reportada por TWS
+- ERROR_CALLBACK: advertencias/errores de TWS
+
+El error 354 de datos de mercado ya no se etiqueta automáticamente como “ejecutada” ni como rechazo definitivo: se conserva como advertencia y se espera el estado de orden de TWS.
+
+Guardas preservadas:
+- Cuenta PAPER obligatoria (DU)
+- Cuenta LIVE rechazada
+- EE.UU. STK
+- Máximo 1 acción
+- Máximo USD 500
+- LMT DAY
+- Precio manual TWS auditado
+- Diferencia máxima 2.5%
+- overridePercentageConstraints=False
+- No se desactivan precauciones de TWS
+
+Launcher local nuevo:
+INICIAR_NEXUS_BRIDGE_V4_4_PAPER.cmd
+
+No reutilizar una orden anterior para probar V0.26.4. Primero revisar/cancelar manualmente cualquier orden PAPER antigua que siga visible en TWS.

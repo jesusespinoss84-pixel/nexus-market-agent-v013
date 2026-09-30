@@ -1,7 +1,7 @@
 
-## V0.26.3
-- Corrige versionado visible de toda la interfaz a V0.26.3.
-- Corrige `config/settings.yaml` a `version: 0.26.3`.
+## V0.26.4
+- Corrige versionado visible de toda la interfaz a V0.26.4.
+- Corrige `config/settings.yaml` a `version: 0.26.4`.
 - Incrementa cache-busting de CSS/JS a `v=0263`.
 - Mantiene Bridge V4.3 con fallback manual TWS auditado como `MANUAL_TWS_PRICE`.
 - Mantiene PAPER-only, rechazo de cuentas LIVE, guarda de precio 2.5%, máximo 1 acción/USD 500/LMT DAY y precauciones TWS.

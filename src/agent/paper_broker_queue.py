@@ -44,14 +44,18 @@ class PaperBrokerQueue:
             self._save(rows)
         return found
     def result(self, oid, payload):
-        allowed={'status','ibkr_order_id','filled','remaining','avg_fill_price','last_fill_price','error_code','error_message','event_utc'}
+        allowed={'status','ibkr_order_id','filled','remaining','avg_fill_price','last_fill_price','error_code','error_message','event_utc','event_type','tws_raw_status','tws_warning_text','why_held','perm_id','execution_state','exec_id','shares','price'}
         with self.lock:
             rows=self._load(); found=None
             for r in rows:
                 if r.get('id')==oid:
+                    event={k:payload[k] for k in allowed if k in payload}
+                    event['received_utc']=datetime.now(timezone.utc).isoformat()
+                    r.setdefault('events',[]).append(event)
+                    r['events']=r['events'][-100:]
                     for k in allowed:
                         if k in payload: r[k]=payload[k]
-                    r['updated_utc']=datetime.now(timezone.utc).isoformat(); found=dict(r); break
+                    r['updated_utc']=event['received_utc']; found=dict(r); break
             self._save(rows)
         return found
     def latest(self, n=20):

@@ -1,4 +1,4 @@
-NEXUS V0.26.3 - IBKR PAPER PRICE GUARD
+NEXUS V0.26.4 - IBKR PAPER PRICE GUARD
 
 Cambio principal:
 - El precio visible en TWS capturado manualmente se registra como MANUAL_TWS_PRICE.
