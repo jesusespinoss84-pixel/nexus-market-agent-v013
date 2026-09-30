@@ -1,0 +1,8 @@
+NEXUS V0.26.6 / BRIDGE V4.6
+
+354 ahora se clasifica como REVISION MANUAL TWS PAPER y dispara reqOpenOrders para recuperar el estado real.
+No se marca ejecutada sin Filled/Execution.
+MANUAL_TWS_PRICE + guarda 2.5% se conservan.
+overridePercentageConstraints=False.
+PAPER obligatorio; LIVE rechazado; max 1 accion; USD500; LMT DAY.
+Nunca usar Desactivar y transmitir ni desactivar precauciones TWS.

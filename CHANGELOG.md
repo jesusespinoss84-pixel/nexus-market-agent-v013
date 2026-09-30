@@ -1,6 +1,6 @@
 
-## V0.26.5
-- Corrige versionado visible de toda la interfaz a V0.26.5.
+## V0.26.6
+- Corrige versionado visible de toda la interfaz a V0.26.6.
 - Corrige `config/settings.yaml` a `version: 0.26.5`.
 - Incrementa cache-busting de CSS/JS a `v=0263`.
 - Mantiene Bridge V4.3 con fallback manual TWS auditado como `MANUAL_TWS_PRICE`.
